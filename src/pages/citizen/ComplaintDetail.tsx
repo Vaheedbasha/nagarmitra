@@ -27,7 +27,7 @@ import { EmptyState } from "@/components/ui/Avatar";
 import { CityMap } from "@/components/map/CityMap";
 import { Modal } from "@/components/ui/Modal";
 import { categoryMeta, statusMeta } from "@/lib/constants";
-import { formatDate, timeAgo } from "@/lib/utils";
+import { cn, formatDate, timeAgo } from "@/lib/utils";
 
 export default function ComplaintDetail() {
   const { id } = useParams();
@@ -37,8 +37,11 @@ export default function ComplaintDetail() {
   const complaint = useComplaint(id);
 
   const [storyModalOpen, setStoryModalOpen] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [copiedStory, setCopiedStory] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [hasConfirmed, setHasConfirmed] = useState(false);
 
   if (!complaint) {
     return (
@@ -62,18 +65,69 @@ export default function ComplaintDetail() {
     toast({ title: "Complaint ID copied", description: complaint.id, variant: "info" });
   };
 
-  const copyPostLink = () => {
+  const handleCopyLink = () => {
     navigator.clipboard?.writeText(window.location.href);
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2200);
     toast({
       title: "Link copied to clipboard",
-      description: "You can now paste and share this report link anywhere.",
+      description: "Share this link with neighbors across WhatsApp, Instagram, or SMS.",
       variant: "success",
     });
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `Civic Alert: ${complaint.title}`,
+      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" (${status.label}). Verify or track progress on CityFix:`,
+      url: window.location.href,
+    };
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+        toast({ title: "Shared successfully", variant: "success" });
+        return;
+      } catch (err: any) {
+        if (err.name === "AbortError") return; // User closed sheet
+      }
+    }
+    // Fallback: Open multi-app share sheet modal
+    setShareModalOpen(true);
+  };
+
+  const handleConfirm = () => {
+    upvote(complaint.id);
+    setHasConfirmed(true);
+    toast({
+      title: "Verification recorded 👍",
+      description: "Your confirmation helps this issue get prioritised for field crews.",
+      variant: "success",
+    });
+  };
+
+  const scrollToComments = () => {
+    const el = document.getElementById("community-comments");
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth" });
+      const textarea = el.querySelector("textarea");
+      textarea?.focus();
+    }
   };
 
   const shareWhatsApp = () => {
     const text = `🚨 Civic Issue Reported on CityFix: ${complaint.title} in ${complaint.location}.\n\nTrack progress or verify this report here: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
+  };
+
+  const shareTwitter = () => {
+    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Tracking progress on CityFix:`;
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, "_blank");
+  };
+
+  const shareTelegram = () => {
+    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}".`;
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handlePostComment = (e: React.FormEvent) => {
@@ -111,90 +165,43 @@ export default function ComplaintDetail() {
         Back
       </button>
 
-      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${category.tint}`}>
-              <Icon size={11} />
-              {category.label}
-            </span>
-            <StatusChip status={complaint.status} size="sm" />
-            <PriorityChip priority={complaint.priority} score={complaint.score} size="sm" />
-          </div>
-          <h1 className="text-[21px] font-extrabold leading-tight sm:text-[26px]">
-            {complaint.title}
-          </h1>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-slate-500">
-            <button
-              onClick={copyId}
-              className="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-slate-500 transition hover:text-brand-600"
-            >
-              {complaint.id}
-              <Copy size={11} />
-            </button>
-            <span className="inline-flex items-center gap-1">
-              <MapPin size={12} className="text-slate-400" />
-              {complaint.location}
-            </span>
-            <span className="inline-flex items-center gap-1">
-              <CalendarDays size={12} className="text-slate-400" />
-              Submitted {formatDate(complaint.date)}
-            </span>
-          </div>
+      {/* Post Header */}
+      <div className="mb-4">
+        <div className="mb-2 flex flex-wrap items-center gap-1.5">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold ${category.tint}`}>
+            <Icon size={11} />
+            {category.label}
+          </span>
+          <StatusChip status={complaint.status} size="sm" />
+          <PriorityChip priority={complaint.priority} score={complaint.score} size="sm" />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              upvote(complaint.id);
-              toast({
-                title: "Verification recorded",
-                description: "Your confirmation helps this issue get prioritised.",
-                variant: "success",
-              });
-            }}
-          >
-            <ThumbsUp size={14} />
-            Confirm issue
-            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">
-              {complaint.upvotes}
-            </span>
-          </Button>
-
-          {/* Social Share actions */}
+        <h1 className="text-[21px] font-extrabold leading-tight sm:text-[26px]">
+          {complaint.title}
+        </h1>
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-slate-500">
           <button
-            onClick={shareWhatsApp}
-            className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-[12px] font-semibold text-white shadow-sm transition hover:bg-emerald-700"
-            title="Share on WhatsApp"
+            onClick={copyId}
+            className="inline-flex items-center gap-1 font-mono text-[11px] font-medium text-slate-500 transition hover:text-brand-600"
           >
-            <Share2 size={13} />
-            <span className="hidden sm:inline">WhatsApp</span>
+            {complaint.id}
+            <Copy size={11} />
           </button>
-
-          <button
-            onClick={() => setStoryModalOpen(true)}
-            className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600"
-            title="Generate One-Line Story Card"
-          >
-            <Camera size={13} className="text-brand-600" />
-            <span className="hidden sm:inline">Story Card</span>
-          </button>
-
-          <button
-            onClick={copyPostLink}
-            className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 text-[12px] font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-            title="Copy Report Link"
-          >
-            <Copy size={13} />
-          </button>
+          <span className="inline-flex items-center gap-1">
+            <MapPin size={12} className="text-slate-400" />
+            {complaint.location}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <CalendarDays size={12} className="text-slate-400" />
+            Submitted {formatDate(complaint.date)}
+          </span>
         </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-4">
-          {complaint.photo ? (
-            <div className="surface overflow-hidden">
+          {/* Main Civic Post Card */}
+          <div className="surface overflow-hidden">
+            {complaint.photo ? (
               <div className="relative">
                 <img
                   src={complaint.photo}
@@ -208,35 +215,98 @@ export default function ComplaintDetail() {
                   {category.short}
                 </div>
               </div>
-              <div className="flex items-center justify-between px-4 py-2.5">
-                <p className="flex items-center gap-1.5 text-[10.5px] text-slate-400">
-                  <ShieldCheck size={12} />
-                  Uploaded by the reporter
-                </p>
-                <span className="text-[10px] text-slate-400">Demo image</span>
+            ) : null}
+
+            <div className="p-4 sm:p-5">
+              <h2 className="text-[14px] font-bold">Description</h2>
+              <p className="mt-2 text-[13px] leading-relaxed text-slate-600">{complaint.description}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {[
+                  { label: "Category", value: category.short },
+                  { label: "Area", value: complaint.area },
+                  { label: "Reported", value: formatDate(complaint.date, { month: "short", day: "numeric" }) },
+                  { label: "Confirmations", value: `${complaint.upvotes}` },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-lg bg-slate-50 px-2.5 py-2">
+                    <p className="text-[9.5px] font-medium uppercase tracking-wide text-slate-400">
+                      {item.label}
+                    </p>
+                    <p className="mt-0.5 truncate text-[11.5px] font-semibold text-slate-700">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
               </div>
             </div>
-          ) : null}
 
-          <div className="surface p-4 sm:p-5">
-            <h2 className="text-[14px] font-bold">Description</h2>
-            <p className="mt-2 text-[13px] leading-relaxed text-slate-600">{complaint.description}</p>
-            <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                { label: "Category", value: category.short },
-                { label: "Area", value: complaint.area },
-                { label: "Reported", value: formatDate(complaint.date, { month: "short", day: "numeric" }) },
-                { label: "Confirmations", value: `${complaint.upvotes}` },
-              ].map((item) => (
-                <div key={item.label} className="rounded-lg bg-slate-50 px-2.5 py-2">
-                  <p className="text-[9.5px] font-medium uppercase tracking-wide text-slate-400">
-                    {item.label}
-                  </p>
-                  <p className="mt-0.5 truncate text-[11.5px] font-semibold text-slate-700">
-                    {item.value}
-                  </p>
+            {/* Authentic Social Post Action Bar */}
+            <div className="border-t border-line/80 bg-slate-50/70 px-3 py-2.5 sm:px-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  {/* Confirm Issue / Upvote */}
+                  <button
+                    onClick={handleConfirm}
+                    className={cn(
+                      "focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-semibold shadow-sm transition active:scale-95",
+                      hasConfirmed
+                        ? "border-brand-300 bg-brand-50 text-brand-700 ring-1 ring-brand-200"
+                        : "border-line bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600"
+                    )}
+                    title="Confirm you have seen or face this issue"
+                  >
+                    <ThumbsUp size={14} className={hasConfirmed ? "fill-brand-600 text-brand-600" : ""} />
+                    <span>{hasConfirmed ? "Confirmed" : "Confirm issue"}</span>
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-slate-600">
+                      {complaint.upvotes}
+                    </span>
+                  </button>
+
+                  {/* Comments button */}
+                  <button
+                    onClick={scrollToComments}
+                    className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-600 active:scale-95"
+                    title="Jump to community discussion"
+                  >
+                    <MessageSquare size={14} className="text-slate-500" />
+                    <span>Comments</span>
+                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-slate-600">
+                      {complaint.comments?.length ?? 0}
+                    </span>
+                  </button>
                 </div>
-              ))}
+
+                <div className="flex items-center gap-1.5">
+                  {/* Share across apps (Native Mobile Share Sheet or Modal) */}
+                  <button
+                    onClick={handleShare}
+                    className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-600 px-3 text-[12px] font-bold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
+                    title="Share report with neighbors or across social apps"
+                  >
+                    <Share2 size={13} />
+                    <span>Share</span>
+                  </button>
+
+                  {/* Story Card Generator */}
+                  <button
+                    onClick={() => setStoryModalOpen(true)}
+                    className="focus-ring hidden h-9 items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-300 hover:text-brand-600 sm:inline-flex"
+                    title="Generate 9:16 Instagram/WhatsApp Story Card"
+                  >
+                    <Camera size={13} className="text-brand-600" />
+                    <span>Story Card</span>
+                  </button>
+
+                  {/* Quick Copy Link */}
+                  <button
+                    onClick={handleCopyLink}
+                    className="focus-ring inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                    title="Copy report link"
+                    aria-label="Copy report link"
+                  >
+                    {copiedLink ? <Check size={14} className="text-emerald-600" /> : <Copy size={13} />}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -269,7 +339,7 @@ export default function ComplaintDetail() {
           </div>
 
           {/* Community Comments & On-Site Updates */}
-          <div className="surface p-4 sm:p-5">
+          <div id="community-comments" className="surface p-4 sm:p-5 scroll-mt-20">
             <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
@@ -417,6 +487,106 @@ export default function ComplaintDetail() {
           </Link>
         </div>
       </div>
+
+      {/* Multi-App Share Modal (Desktop fallback & advanced share) */}
+      <Modal
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        title="Share Civic Alert"
+        description="Spread awareness with neighbors and community groups across social platforms."
+        size="sm"
+      >
+        <div className="space-y-3">
+          {/* Link box */}
+          <div className="flex items-center gap-2 rounded-xl border border-line bg-slate-50 p-2">
+            <input
+              type="text"
+              readOnly
+              value={window.location.href}
+              className="min-w-0 flex-1 bg-transparent px-2 text-[11px] font-mono text-slate-600 outline-none select-all"
+            />
+            <Button
+              size="sm"
+              variant={copiedLink ? "primary" : "outline"}
+              onClick={handleCopyLink}
+              className="shrink-0 text-xs"
+            >
+              {copiedLink ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+              <span>{copiedLink ? "Copied" : "Copy"}</span>
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* WhatsApp */}
+            <button
+              onClick={() => {
+                shareWhatsApp();
+                setShareModalOpen(false);
+              }}
+              className="focus-ring flex items-center gap-2.5 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3 text-left transition hover:bg-emerald-100/60"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
+                <Share2 size={14} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-800">WhatsApp</p>
+                <p className="truncate text-[10px] text-slate-400">Groups & status</p>
+              </div>
+            </button>
+
+            {/* X / Twitter */}
+            <button
+              onClick={() => {
+                shareTwitter();
+                setShareModalOpen(false);
+              }}
+              className="focus-ring flex items-center gap-2.5 rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left transition hover:bg-slate-100"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black text-white shadow-sm">
+                <span className="font-bold text-xs">𝕏</span>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-800">X (Twitter)</p>
+                <p className="truncate text-[10px] text-slate-400">Public post</p>
+              </div>
+            </button>
+
+            {/* Telegram */}
+            <button
+              onClick={() => {
+                shareTelegram();
+                setShareModalOpen(false);
+              }}
+              className="focus-ring flex items-center gap-2.5 rounded-xl border border-sky-100 bg-sky-50/50 p-3 text-left transition hover:bg-sky-100/60"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500 text-white shadow-sm">
+                <Send size={14} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-800">Telegram</p>
+                <p className="truncate text-[10px] text-slate-400">Channel & chat</p>
+              </div>
+            </button>
+
+            {/* 9:16 Visual Story Card */}
+            <button
+              onClick={() => {
+                setShareModalOpen(false);
+                setStoryModalOpen(true);
+              }}
+              className="focus-ring flex items-center gap-2.5 rounded-xl border border-brand-100 bg-brand-50/50 p-3 text-left transition hover:bg-brand-100/60"
+            >
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white shadow-sm">
+                <Camera size={14} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[12px] font-bold text-slate-800">Story Card</p>
+                <p className="truncate text-[10px] text-slate-400">9:16 Visual card</p>
+              </div>
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* 9:16 One-Line Story Card Modal */}
       <Modal

@@ -73,20 +73,19 @@ export function CitizenLayout() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Vernacular Language Selector */}
-            <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-2 text-slate-400">
-                <Languages size={12} />
-              </span>
+            {/* Icon-Only Vernacular Language Selector */}
+            <div className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-white text-slate-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
+              <Languages size={15} />
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value as "en" | "hi" | "te")}
-                className="h-8 rounded-xl border border-line bg-white/95 pl-6 pr-2 text-[11px] font-bold text-slate-700 outline-none transition hover:border-brand-300 focus:border-brand-500 shadow-sm"
+                className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                 aria-label="Select Language"
+                title={`Language: ${language === "hi" ? "हिंदी" : language === "te" ? "తెలుగు" : "English"}`}
               >
-                <option value="en">English</option>
-                <option value="hi">हिंदी</option>
-                <option value="te">తెలుగు</option>
+                <option value="en">English (EN)</option>
+                <option value="hi">हिंदी (Hindi)</option>
+                <option value="te">తెలుగు (Telugu)</option>
               </select>
             </div>
 

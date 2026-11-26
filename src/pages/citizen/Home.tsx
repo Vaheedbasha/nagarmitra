@@ -133,54 +133,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 3-Way Quick Action Bar for Educated & Uneducated Citizens */}
-      <section className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Link
-          to="/report/chat"
-          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
-        >
-          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition">
-            <Mic size={20} />
-          </span>
-          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
-            {t.quickSpeak}
-          </span>
-          <span className="text-[9.5px] text-slate-400 hidden sm:block">
-            Voice in any language
-          </span>
-        </Link>
-
-        <Link
-          to="/report/chat"
-          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
-        >
-          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-white transition">
-            <Camera size={20} />
-          </span>
-          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
-            {t.quickPhoto}
-          </span>
-          <span className="text-[9.5px] text-slate-400 hidden sm:block">
-            Auto-triage from photo
-          </span>
-        </Link>
-
-        <Link
-          to="/report/chat"
-          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
-        >
-          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white transition">
-            <Sparkles size={20} />
-          </span>
-          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
-            {t.quickChat}
-          </span>
-          <span className="text-[9.5px] text-slate-400 hidden sm:block">
-            Guided AI assistance
-          </span>
-        </Link>
-      </section>
-
       {/* Categories */}
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
