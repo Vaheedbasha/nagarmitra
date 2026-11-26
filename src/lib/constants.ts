@@ -1,10 +1,18 @@
 import {
   Construction,
   Droplets,
-  Landmark,
-  Lightbulb,
+  FileText,
+  GraduationCap,
+  HeartPulse,
   HelpCircle,
+  Landmark,
+  Leaf,
+  Lightbulb,
+  Scale,
+  ShieldAlert,
   Trash2,
+  Waves,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import type { CategoryId, PriorityId, StatusId } from "@/types";
@@ -16,24 +24,27 @@ export interface CategoryMeta {
   icon: LucideIcon;
   tile: string;
   tint: string;
+  subcategories: string[];
 }
 
 export const CATEGORIES: CategoryMeta[] = [
   {
     id: "roads",
-    label: "Roads & Potholes",
+    label: "Roads & Transportation",
     short: "Roads",
     icon: Construction,
     tile: "bg-orange-50 text-orange-600 group-hover:bg-orange-100",
     tint: "bg-orange-50 text-orange-700 border-orange-100",
+    subcategories: ["Potholes", "Damaged road surface", "Footpaths & paver blocks", "Traffic signals & signs", "Road cave-in"],
   },
   {
-    id: "garbage",
-    label: "Garbage & Sanitation",
-    short: "Garbage",
+    id: "waste",
+    label: "Waste Management",
+    short: "Waste",
     icon: Trash2,
     tile: "bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100",
     tint: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    subcategories: ["Garbage accumulation", "Irregular garbage pickup", "Illegal roadside dumping", "Overflowing community bins"],
   },
   {
     id: "water",
@@ -42,14 +53,25 @@ export const CATEGORIES: CategoryMeta[] = [
     icon: Droplets,
     tile: "bg-sky-50 text-sky-600 group-hover:bg-sky-100",
     tint: "bg-sky-50 text-sky-700 border-sky-100",
+    subcategories: ["Pipe burst / major leakage", "Contaminated / foul water", "Low water pressure / no supply", "Public tap damage"],
   },
   {
-    id: "streetlights",
-    label: "Streetlights",
-    short: "Streetlights",
-    icon: Lightbulb,
+    id: "drainage",
+    label: "Drainage & Sewage",
+    short: "Drainage",
+    icon: Waves,
+    tile: "bg-cyan-50 text-cyan-600 group-hover:bg-cyan-100",
+    tint: "bg-cyan-50 text-cyan-700 border-cyan-100",
+    subcategories: ["Blocked storm drain", "Sewage line overflow", "Street waterlogging", "Open / damaged manhole"],
+  },
+  {
+    id: "electricity",
+    label: "Electricity & Streetlights",
+    short: "Electricity",
+    icon: Zap,
     tile: "bg-amber-50 text-amber-600 group-hover:bg-amber-100",
     tint: "bg-amber-50 text-amber-700 border-amber-100",
+    subcategories: ["Streetlight dark / broken", "Exposed electrical cables", "Damaged utility pole", "Transformer sparking"],
   },
   {
     id: "infrastructure",
@@ -58,19 +80,87 @@ export const CATEGORIES: CategoryMeta[] = [
     icon: Landmark,
     tile: "bg-indigo-50 text-indigo-600 group-hover:bg-indigo-100",
     tint: "bg-indigo-50 text-indigo-700 border-indigo-100",
+    subcategories: ["Broken bus shelter", "Public park damage", "Damaged public toilets", "Footbridge / barrier damage"],
+  },
+  {
+    id: "environment",
+    label: "Environmental Issues",
+    short: "Environment",
+    icon: Leaf,
+    tile: "bg-lime-50 text-lime-600 group-hover:bg-lime-100",
+    tint: "bg-lime-50 text-lime-700 border-lime-100",
+    subcategories: ["Air & dust pollution", "Illegal tree cutting", "Open burning of waste", "Industrial noise violation"],
+  },
+  {
+    id: "health",
+    label: "Public Health & Hygiene",
+    short: "Public Health",
+    icon: HeartPulse,
+    tile: "bg-teal-50 text-teal-600 group-hover:bg-teal-100",
+    tint: "bg-teal-50 text-teal-700 border-teal-100",
+    subcategories: ["Stagnant water / mosquito breeding", "Unhygienic public vendor spaces", "Dead animal removal", "Public toilet sanitation"],
+  },
+  {
+    id: "safety",
+    label: "Public Safety",
+    short: "Public Safety",
+    icon: ShieldAlert,
+    tile: "bg-rose-50 text-rose-600 group-hover:bg-rose-100",
+    tint: "bg-rose-50 text-rose-700 border-rose-100",
+    subcategories: ["Unsafe structural ruins", "Dangerous open construction pit", "Stray animal aggression", "Unlit dangerous corner"],
+  },
+  {
+    id: "gov_services",
+    label: "Government Services",
+    short: "Govt Services",
+    icon: FileText,
+    tile: "bg-purple-50 text-purple-600 group-hover:bg-purple-100",
+    tint: "bg-purple-50 text-purple-700 border-purple-100",
+    subcategories: ["Delayed civic certificates", "Pending citizen application", "Unresponsive ward office", "Counter service delay"],
+  },
+  {
+    id: "corruption",
+    label: "Corruption & Misconduct",
+    short: "Misconduct",
+    icon: Scale,
+    tile: "bg-violet-50 text-violet-600 group-hover:bg-violet-100",
+    tint: "bg-violet-50 text-violet-700 border-violet-100",
+    subcategories: ["Bribery solicitation", "Misuse of municipal vehicles", "Official negligence", "Unauthorized fee collection"],
+  },
+  {
+    id: "education",
+    label: "Education & Healthcare",
+    short: "Edu & Health",
+    icon: GraduationCap,
+    tile: "bg-blue-50 text-blue-600 group-hover:bg-blue-100",
+    tint: "bg-blue-50 text-blue-700 border-blue-100",
+    subcategories: ["Govt school toilet broken", "PHC clinic medicine shortage", "Hospital sanitation failure", "School boundary wall collapse"],
   },
   {
     id: "other",
-    label: "Other Issues",
+    label: "Other Civic Issues",
     short: "Other",
     icon: HelpCircle,
     tile: "bg-slate-100 text-slate-600 group-hover:bg-slate-200",
     tint: "bg-slate-100 text-slate-700 border-slate-200",
+    subcategories: ["General civic issue", "Miscellaneous civic enquiry"],
   },
 ];
 
+/** The top 6 most reported daily civic categories shown prominently on the home screen */
+export const TOP_CATEGORY_IDS: CategoryId[] = [
+  "roads",
+  "waste",
+  "water",
+  "drainage",
+  "electricity",
+  "safety",
+];
+
 export function categoryMeta(id: CategoryId) {
-  return CATEGORIES.find((category) => category.id === id) ?? CATEGORIES[5];
+  // Support legacy IDs
+  const mappedId = id === "garbage" ? "waste" : id === "streetlights" ? "electricity" : id;
+  return CATEGORIES.find((category) => category.id === mappedId) ?? CATEGORIES[0];
 }
 
 export interface StatusMeta {

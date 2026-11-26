@@ -6,7 +6,9 @@ import {
   CalendarDays,
   Camera,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Copy,
   ImagePlus,
   Info,
@@ -21,7 +23,7 @@ import { CityMap } from "@/components/map/CityMap";
 import { PriorityChip } from "@/components/ui/Badge";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
-import { CATEGORIES, categoryMeta } from "@/lib/constants";
+import { CATEGORIES, TOP_CATEGORY_IDS, categoryMeta } from "@/lib/constants";
 import {
   buildTimeline,
   priorityFromScore,
@@ -101,6 +103,9 @@ export default function ManualReport() {
   const [title, setTitle] = useState(initialTitle);
   const [description, setDescription] = useState(prefill.description ?? "");
   const [category, setCategory] = useState<CategoryId | "">(initialCategory);
+  const [showAllCategories, setShowAllCategories] = useState<boolean>(
+    Boolean(initialCategory && !TOP_CATEGORY_IDS.includes(initialCategory as CategoryId))
+  );
   const [issueLocation, setIssueLocation] = useState(prefill.fromVoice ? "Maple Market, Ward 2" : "");
   const [severity, setSeverity] = useState<SeverityId>("medium");
   const [pin, setPin] = useState({ x: 44, y: 52 });
@@ -441,11 +446,31 @@ export default function ManualReport() {
             </div>
 
             <div>
-              <span className="field-label">
-                Category <span className="text-red-500">*</span>
-              </span>
+              <div className="mb-1.5 flex items-center justify-between">
+                <span className="field-label mb-0">
+                  Category <span className="text-red-500">*</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowAllCategories((v) => !v)}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-brand-600 hover:text-brand-700"
+                >
+                  {showAllCategories ? (
+                    <>
+                      Top 6 common <ChevronUp size={12} />
+                    </>
+                  ) : (
+                    <>
+                      All 12 categories <ChevronDown size={12} />
+                    </>
+                  )}
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {CATEGORIES.map((item) => {
+                {(showAllCategories
+                  ? CATEGORIES.filter((c) => c.id !== "other")
+                  : CATEGORIES.filter((c) => TOP_CATEGORY_IDS.includes(c.id))
+                ).map((item) => {
                   const Icon = item.icon;
                   const active = category === item.id;
                   return (

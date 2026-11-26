@@ -490,6 +490,119 @@ const RAW: RawComplaint[] = [
     resolutionNote:
       "Bench replaced and both loose railing posts re-anchored. A second inspection of the water-edge railing was completed.",
   },
+  {
+    id: "CF-2026-0155",
+    title: "Open manhole and overflowing stormwater drain",
+    description:
+      "Heavy rainwater is causing sewage and drain water to spill onto the street outside the vegetable market. A concrete manhole cover has broken and is lying open, creating a severe accident hazard for pedestrians.",
+    aiSummary:
+      "Damaged manhole cover and sewage overflow spilling onto the market road, posing an acute sanitation and safety risk.",
+    category: "drainage",
+    status: "progress",
+    factors: { severity: 88, impact: 82, recurrence: 65, urgency: 90 },
+    location: "Market Cross Road, Ward 2",
+    area: "Market Square",
+    date: "2026-11-23",
+    photo: "/evidence/water.jpg",
+    reporter: {
+      name: "Siddharth Verma",
+      anonymous: false,
+      phone: "+91 94•• ••18 90",
+      reports: 4,
+      trust: 88,
+    },
+    coordinates: { x: 38, y: 46 },
+    upvotes: 27,
+    why: [
+      "Open manhole poses critical pedestrian safety risk",
+      "High volume market area with pedestrian footfall",
+      "Repeat blockage reported during monsoons",
+    ],
+  },
+  {
+    id: "CF-2026-0162",
+    title: "Unfenced excavation pit left open near public walkway",
+    description:
+      "A 6-foot deep pit dug for cable laying has been left unfenced and without warning reflectors on a poorly lit bend. Two cyclists almost fell into it yesterday evening.",
+    aiSummary:
+      "Unbarricaded deep cable pit on pedestrian walkway with no warning signs or night reflectors.",
+    category: "safety",
+    status: "submitted",
+    factors: { severity: 85, impact: 70, recurrence: 40, urgency: 88 },
+    location: "Rosewood Lane, Ward 6",
+    area: "Rosewood",
+    date: "2026-11-25",
+    photo: "/evidence/pothole.jpg",
+    reporter: {
+      name: "Meera Kulkarni",
+      anonymous: false,
+      phone: "+91 99•• ••33 12",
+      reports: 2,
+      trust: 80,
+    },
+    coordinates: { x: 62, y: 35 },
+    upvotes: 19,
+    why: [
+      "Immediate physical injury risk at night",
+      "Lack of barricades or warning reflectors",
+    ],
+  },
+  {
+    id: "CF-2026-0170",
+    title: "Severe open waste burning along railway boundary",
+    description:
+      "Commercial packaging and plastic waste is being burned openly every night between 9 PM and 11 PM along the railway perimeter, causing thick toxic smoke to enter nearby apartments.",
+    aiSummary:
+      "Nightly open plastic and municipal waste burning causing severe smoke pollution across residential blocks.",
+    category: "environment",
+    status: "review",
+    factors: { severity: 72, impact: 78, recurrence: 85, urgency: 68 },
+    location: "Greenwood Apartments, Ward 7",
+    area: "Greenwood",
+    date: "2026-11-21",
+    photo: "/evidence/garbage.jpg",
+    reporter: {
+      name: "Karan Johar",
+      anonymous: true,
+      phone: "Hidden",
+      reports: 5,
+      trust: 85,
+    },
+    coordinates: { x: 74, y: 60 },
+    upvotes: 31,
+    why: [
+      "Toxic smoke affecting over 300 apartment residents",
+      "Repeated violations documented over two weeks",
+    ],
+  },
+  {
+    id: "CF-2026-0178",
+    title: "Non-functional toilet and water tap at Govt Primary School",
+    description:
+      "The student sanitation block at Ward 4 Govt School has had no running water for over five days due to a broken pipe inlet. Students and teachers have no working handwashing facility.",
+    aiSummary:
+      "Lack of water supply and non-functional sanitation block in municipal primary school affecting 200+ students.",
+    category: "education",
+    status: "submitted",
+    factors: { severity: 82, impact: 80, recurrence: 55, urgency: 85 },
+    location: "School Road, Ward 4",
+    area: "Old Town",
+    date: "2026-11-24",
+    photo: "/evidence/water.jpg",
+    reporter: {
+      name: "Pooja Hegde",
+      anonymous: false,
+      phone: "+91 91•• ••55 40",
+      reports: 3,
+      trust: 90,
+    },
+    coordinates: { x: 26, y: 36 },
+    upvotes: 34,
+    why: [
+      "Affects child hygiene and school attendance",
+      "Acute water supply failure in institutional premises",
+    ],
+  },
 ];
 
 export const COMPLAINTS: Complaint[] = RAW.map((raw) => {
@@ -523,10 +636,10 @@ export function advanceComplaint(
 }
 
 /** Categories used by the reporting forms and filters. */
-export const CATEGORY_COUNTS: Record<CategoryId, number> = COMPLAINTS.reduce(
+export const CATEGORY_COUNTS: Record<string, number> = COMPLAINTS.reduce(
   (acc, complaint) => {
-    acc[complaint.category] += 1;
+    acc[complaint.category] = (acc[complaint.category] ?? 0) + 1;
     return acc;
   },
-  { roads: 0, garbage: 0, water: 0, streetlights: 0, infrastructure: 0, other: 0 }
+  {} as Record<string, number>
 );

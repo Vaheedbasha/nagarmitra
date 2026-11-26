@@ -39,7 +39,11 @@ export default function Explore() {
         complaint.location.toLowerCase().includes(q) ||
         complaint.area.toLowerCase().includes(q) ||
         complaint.id.toLowerCase().includes(q);
-      const matchesCategory = category === "all" || complaint.category === category;
+      const matchesCategory =
+        category === "all" ||
+        complaint.category === category ||
+        (category === "waste" && complaint.category === "garbage") ||
+        (category === "electricity" && complaint.category === "streetlights");
       const matchesStatus = status === "all" || complaint.status === status;
       return matchesQuery && matchesCategory && matchesStatus;
     });

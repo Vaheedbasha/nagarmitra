@@ -1,9 +1,18 @@
 export type CategoryId =
   | "roads"
+  | "waste"
   | "garbage"
   | "water"
+  | "drainage"
+  | "electricity"
   | "streetlights"
   | "infrastructure"
+  | "environment"
+  | "health"
+  | "safety"
+  | "gov_services"
+  | "corruption"
+  | "education"
   | "other";
 
 export type StatusId = "submitted" | "review" | "progress" | "resolved";
