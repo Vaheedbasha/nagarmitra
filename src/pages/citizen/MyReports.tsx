@@ -64,18 +64,38 @@ export default function MyReports() {
       </div>
 
       <div className="surface mb-4 flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <Segmented
-          options={[
-            { id: "all", label: "All", count: counts.all },
-            { id: "submitted", label: "Submitted", count: counts.submitted },
-            { id: "progress", label: "In Progress", count: counts.progress },
-            { id: "resolved", label: "Resolved", count: counts.resolved },
-          ]}
-          value={tab}
-          onChange={(value) => setTab(value as Tab)}
-          fullWidth
-          className="sm:w-auto"
-        />
+        {/* Mobile dropdown selector (zero horizontal overflow on small screens) */}
+        <div className="w-full sm:hidden">
+          <label htmlFor="my-reports-filter" className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            Filter by status
+          </label>
+          <select
+            id="my-reports-filter"
+            value={tab}
+            onChange={(e) => setTab(e.target.value as Tab)}
+            className="h-10 w-full rounded-xl border border-line bg-white px-3 text-xs font-semibold text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+          >
+            <option value="all">All reports ({counts.all})</option>
+            <option value="submitted">Submitted ({counts.submitted})</option>
+            <option value="progress">In Progress ({counts.progress})</option>
+            <option value="resolved">Resolved ({counts.resolved})</option>
+          </select>
+        </div>
+
+        {/* Tablet and Desktop Segmented Tab buttons */}
+        <div className="hidden sm:block">
+          <Segmented
+            options={[
+              { id: "all", label: "All", count: counts.all },
+              { id: "submitted", label: "Submitted", count: counts.submitted },
+              { id: "progress", label: "In Progress", count: counts.progress },
+              { id: "resolved", label: "Resolved", count: counts.resolved },
+            ]}
+            value={tab}
+            onChange={(value) => setTab(value as Tab)}
+            className="w-auto"
+          />
+        </div>
         <div className="grid grid-cols-3 gap-3 sm:hidden">
           {[
             { label: "Submitted", value: counts.submitted },

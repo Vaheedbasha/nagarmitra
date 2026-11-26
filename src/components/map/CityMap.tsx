@@ -257,7 +257,7 @@ export function CityMap({
         </div>
       ) : null}
 
-      <span className="absolute bottom-3 right-3 z-10 rounded-md bg-white/80 px-1.5 py-0.5 text-[9px] font-medium text-slate-400 backdrop-blur">
+      <span className="absolute top-3 right-3 z-10 rounded-md bg-white/85 px-2 py-0.5 text-[9px] font-medium text-slate-400 shadow-sm backdrop-blur">
         Illustrative map · demo data
       </span>
     </div>
