@@ -4,28 +4,26 @@ import {
   ArrowRight,
   ArrowUpRight,
   CheckCircle2,
+  ChevronDown,
   ChevronRight,
+  ChevronUp,
   Layers,
   MapPin,
   Mic,
   PenLine,
-  Search,
   ShieldCheck,
   Sparkles,
   ThumbsUp,
-  X,
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { CATEGORIES, TOP_CATEGORY_IDS, categoryMeta, statusMeta } from "@/lib/constants";
 import { StatusChip } from "@/components/ui/Badge";
 import { ComplaintCard } from "@/components/complaint/ComplaintCard";
-import { Modal } from "@/components/ui/Modal";
 import { cn, timeAgo } from "@/lib/utils";
 
 export default function Home() {
   const { complaints } = useComplaints();
-  const [allCategoriesOpen, setAllCategoriesOpen] = useState(false);
-  const [categoryQuery, setCategoryQuery] = useState("");
+  const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
 
   const nearYou = complaints.filter((c) => c.status !== "resolved").slice(0, 3);
   const openNearby = complaints.filter((c) => c.status !== "resolved").length;
@@ -33,16 +31,9 @@ export default function Home() {
   const activity = complaints.slice(0, 3);
 
   const topCategories = CATEGORIES.filter((category) => TOP_CATEGORY_IDS.includes(category.id));
-
-  const filteredModalCategories = CATEGORIES.filter((category) => {
-    if (category.id === "other") return false;
-    const q = categoryQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      category.label.toLowerCase().includes(q) ||
-      category.subcategories.some((sub) => sub.toLowerCase().includes(q))
-    );
-  });
+  const displayedCategories = isCategoriesExpanded
+    ? CATEGORIES.filter((category) => category.id !== "other")
+    : topCategories;
 
   return (
     <div className="space-y-5 sm:space-y-7">
@@ -197,18 +188,28 @@ export default function Home() {
             </p>
           </div>
           <button
-            onClick={() => setAllCategoriesOpen(true)}
+            onClick={() => setIsCategoriesExpanded((prev) => !prev)}
             className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-3 py-1.5 text-[12px] font-semibold text-slate-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600"
+            aria-expanded={isCategoriesExpanded}
           >
             <Layers size={14} className="text-brand-600" />
-            View all 12 categories
-            <ChevronRight size={13} className="text-slate-400" />
+            {isCategoriesExpanded ? (
+              <>
+                Show less (6 categories)
+                <ChevronUp size={13} className="text-slate-400" />
+              </>
+            ) : (
+              <>
+                View all 12 categories
+                <ChevronDown size={13} className="text-slate-400" />
+              </>
+            )}
           </button>
         </div>
 
-        {/* Top 6 common categories grid */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 sm:gap-3">
-          {topCategories.map((category) => {
+        {/* Categories grid (Row 1 always visible; Row 2 expands inline when clicked) */}
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6 sm:gap-3 transition-all duration-300">
+          {displayedCategories.map((category) => {
             const Icon = category.icon;
             const count = complaints.filter(
               (c) => c.category === category.id || (category.id === "waste" && c.category === "garbage")
@@ -218,7 +219,7 @@ export default function Home() {
               <Link
                 key={category.id}
                 to={`/report/manual?category=${category.id}`}
-                className="surface surface-hover group flex flex-col justify-between p-3 sm:p-3.5"
+                className="surface surface-hover group flex flex-col justify-between p-3 sm:p-3.5 animate-fade-in"
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -305,104 +306,6 @@ export default function Home() {
           <ArrowRight size={13} />
         </Link>
       </section>
-
-      {/* All 12 Categories Modal */}
-      <Modal
-        open={allCategoriesOpen}
-        onClose={() => {
-          setAllCategoriesOpen(false);
-          setCategoryQuery("");
-        }}
-        title="All 12 Issue Categories"
-        description="Select any civic category or subcategory to start your report or explore issues."
-        size="lg"
-      >
-        <div className="space-y-4">
-          {/* Search inside modal */}
-          <div className="relative">
-            <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              value={categoryQuery}
-              onChange={(e) => setCategoryQuery(e.target.value)}
-              placeholder="Search by problem (e.g. manhole, streetlight, hospital, bribe)..."
-              className="field pl-9 pr-9 text-[13px]"
-              autoFocus
-            />
-            {categoryQuery && (
-              <button
-                onClick={() => setCategoryQuery("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {/* 12 Categories List */}
-          <div className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {filteredModalCategories.map((cat) => {
-                const Icon = cat.icon;
-                const count = complaints.filter(
-                  (c) => c.category === cat.id || (cat.id === "waste" && c.category === "garbage")
-                ).length;
-
-                return (
-                  <div
-                    key={cat.id}
-                    className="flex flex-col justify-between rounded-xl border border-line bg-white p-3.5 shadow-sm transition hover:border-brand-300 hover:shadow-md"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <span className={cn("rounded-lg p-2", cat.tile)}>
-                            <Icon size={18} />
-                          </span>
-                          <div>
-                            <h4 className="text-[13px] font-bold text-slate-800">{cat.label}</h4>
-                            <p className="text-[10.5px] text-slate-400">{count} active reports</p>
-                          </div>
-                        </div>
-                        <Link
-                          to={`/report/manual?category=${cat.id}`}
-                          onClick={() => setAllCategoriesOpen(false)}
-                          className="rounded-lg bg-brand-50 px-2.5 py-1 text-[11px] font-semibold text-brand-700 transition hover:bg-brand-100"
-                        >
-                          Report
-                        </Link>
-                      </div>
-
-                      {/* Subcategory chips */}
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {cat.subcategories.map((sub) => (
-                          <Link
-                            key={sub}
-                            to={`/report/manual?category=${cat.id}`}
-                            onClick={() => setAllCategoriesOpen(false)}
-                            className="rounded-md bg-slate-50 px-2 py-0.5 text-[10px] font-medium text-slate-600 transition hover:bg-brand-50 hover:text-brand-700"
-                          >
-                            {sub}
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {filteredModalCategories.length === 0 && (
-              <div className="py-8 text-center text-slate-500">
-                <p className="text-sm font-semibold">No categories matching "{categoryQuery}"</p>
-                <p className="mt-1 text-xs text-slate-400">
-                  Try searching for keywords like "leak", "light", "pothole", or "drain"
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

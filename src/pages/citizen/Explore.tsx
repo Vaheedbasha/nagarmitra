@@ -98,7 +98,7 @@ export default function Explore() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search by issue, street or complaint ID…"
-              className="field pl-9 pr-9"
+              className="field pl-9 pr-9 text-xs sm:text-sm"
               aria-label="Search issues"
             />
             {query ? (
@@ -111,8 +111,10 @@ export default function Explore() {
               </button>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="hidden items-center gap-1 text-[11px] font-medium text-slate-400 sm:flex">
+
+          {/* Desktop/Tablet status segmented bar */}
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="flex items-center gap-1 text-[11px] font-medium text-slate-400">
               <SlidersHorizontal size={12} /> Status
             </span>
             <Segmented
@@ -124,7 +126,47 @@ export default function Explore() {
           </div>
         </div>
 
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
+        {/* Mobile-only compact 2-column dropdowns for minimal space & perfect responsiveness */}
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:hidden">
+          <div className="space-y-1">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Category
+            </span>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as CategoryFilter)}
+              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              aria-label="Filter by category"
+            >
+              <option value="all">All categories (12)</option>
+              {CATEGORIES.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Status
+            </span>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as StatusFilter)}
+              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              aria-label="Filter by status"
+            >
+              <option value="all">All statuses</option>
+              <option value="submitted">Submitted</option>
+              <option value="progress">In progress</option>
+              <option value="resolved">Resolved</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Desktop/Tablet horizontal category pills */}
+        <div className="mt-3 hidden gap-1.5 overflow-x-auto pb-0.5 sm:flex">
           <button
             onClick={() => setCategory("all")}
             className={cn(
