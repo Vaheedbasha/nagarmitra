@@ -119,7 +119,7 @@ export default function AdminComplaints() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `cityfix-complaints-${new Date().toISOString().split("T")[0]}.csv`
+      `nagarmitra-complaints-${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();

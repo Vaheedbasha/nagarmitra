@@ -39,7 +39,7 @@ export default function Home() {
     : topCategories;
 
   return (
-    <div className="space-y-5 sm:space-y-7">
+    <div className="space-y-5 sm:space-y-7 w-full max-w-full overflow-x-hidden">
       {/* Hero */}
       <section className="relative overflow-hidden rounded-2xl bg-brand-700 px-5 py-7 text-white shadow-card sm:px-8 sm:py-9">
         <div className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[46px] border-white/[0.06]" />

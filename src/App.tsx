@@ -41,7 +41,7 @@ function NotFound() {
       <div>
         <h1 className="text-2xl font-extrabold">Page not found</h1>
         <p className="mt-1 text-sm text-slate-500">
-          This screen isn't part of the CityFix demo.
+          This screen isn't part of the NagarMitra demo.
         </p>
       </div>
       <Link to="/">

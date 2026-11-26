@@ -155,7 +155,7 @@ export default function VoiceReport() {
           <h1 className="text-[22px] font-extrabold sm:text-2xl">Voice report</h1>
         </div>
         <p className="mt-1.5 text-[13px] leading-relaxed text-slate-500">
-          Describe the issue in your own words. CityFix turns your recording into a structured
+          Describe the issue in your own words. NagarMitra turns your recording into a structured
           complaint — no typing needed.
         </p>
       </div>

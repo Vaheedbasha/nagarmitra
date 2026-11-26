@@ -700,7 +700,7 @@ export const COMPLAINTS: Complaint[] = RAW.map((raw) => {
         id: `comm-default-${raw.id}`,
         author: "Local Resident",
         date: raw.date,
-        text: "Noticed this issue worsening over the past week. Glad someone reported it on CityFix.",
+        text: "Noticed this issue worsening over the past week. Glad someone reported it on NagarMitra.",
         badge: "Verified Resident",
       },
     ],

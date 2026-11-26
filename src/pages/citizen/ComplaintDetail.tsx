@@ -79,7 +79,7 @@ export default function ComplaintDetail() {
   const handleShare = async () => {
     const shareData = {
       title: `Civic Alert: ${complaint.title}`,
-      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" (${status.label}). Verify or track progress on CityFix:`,
+      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" (${status.label}). Verify or track progress on NagarMitra:`,
       url: window.location.href,
     };
 
@@ -116,12 +116,12 @@ export default function ComplaintDetail() {
   };
 
   const shareWhatsApp = () => {
-    const text = `🚨 Civic Issue Reported on CityFix: ${complaint.title} in ${complaint.location}.\n\nTrack progress or verify this report here: ${window.location.href}`;
+    const text = `🚨 Civic Issue Reported on NagarMitra: ${complaint.title} in ${complaint.location}.\n\nTrack progress or verify this report here: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const shareTwitter = () => {
-    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Tracking progress on CityFix:`;
+    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Tracking progress on NagarMitra:`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, "_blank");
   };
 
@@ -142,7 +142,7 @@ export default function ComplaintDetail() {
     });
   };
 
-  const oneLineStoryText = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" remains unaddressed (${status.label}). Support this issue on CityFix: ${window.location.href}`;
+  const oneLineStoryText = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" remains unaddressed (${status.label}). Support this issue on NagarMitra: ${window.location.href}`;
 
   const copyStoryText = () => {
     navigator.clipboard?.writeText(oneLineStoryText);
@@ -405,7 +405,7 @@ export default function ComplaintDetail() {
 
             <div className="mt-4 border-t border-line/60 pt-3">
               <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                🛡️ Comments are subject to CityFix community guidelines and civil moderation. Private personal contact information is strictly prohibited.
+                🛡️ Comments are subject to NagarMitra community guidelines and civil moderation. Private personal contact information is strictly prohibited.
               </p>
             </div>
           </div>
@@ -604,7 +604,7 @@ export default function ComplaintDetail() {
               <div className="flex items-center gap-1.5">
                 <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-[9px] font-extrabold uppercase tracking-widest text-brand-200">
-                  CityFix Civic Alert
+                  NagarMitra Civic Alert
                 </span>
               </div>
               <span className="rounded bg-white/10 px-2 py-0.5 text-[9px] font-mono font-medium backdrop-blur">

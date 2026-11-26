@@ -28,21 +28,21 @@ export function CitizenLayout() {
   const isChatRoute = location.pathname.startsWith("/report");
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas">
+    <div className="flex min-h-screen w-full flex-col bg-canvas overflow-x-hidden">
       <header className="sticky top-0 z-40 border-b border-line/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-3 sm:px-6">
-          <div className="flex items-center gap-4 sm:gap-6">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
+          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
             <Logo />
 
             {/* City Selector Pill */}
-            <div className="relative flex items-center">
-              <span className="pointer-events-none absolute left-2 text-brand-600">
+            <div className="relative flex items-center shrink-0">
+              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 flex items-center text-brand-600">
                 <MapPin size={12} />
               </span>
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="h-8 rounded-xl border border-line bg-white/95 pl-6 pr-2 text-[11px] font-bold text-slate-700 outline-none transition hover:border-brand-300 focus:border-brand-500 shadow-sm"
+                className="h-8 leading-none rounded-xl border border-line bg-white/95 pl-6 pr-2 text-[11px] font-bold text-slate-700 outline-none transition hover:border-brand-300 focus:border-brand-500 shadow-sm cursor-pointer"
                 aria-label="Select City"
               >
                 <option value="Riverton">Riverton</option>
@@ -110,7 +110,7 @@ export function CitizenLayout() {
 
       <main
         className={cn(
-          "flex-1 w-full",
+          "flex-1 w-full max-w-full overflow-x-hidden",
           isChatRoute
             ? "flex flex-col min-h-0 p-0"
             : "mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 md:pb-14"
@@ -121,7 +121,7 @@ export function CitizenLayout() {
 
       {!isChatRoute && (
         <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 md:block">
-          CityFix prototype · Phase 1 · All data and AI summaries on this screen are simulated.
+          NagarMitra prototype · Phase 1 · All data and AI summaries on this screen are simulated.
         </footer>
       )}
 

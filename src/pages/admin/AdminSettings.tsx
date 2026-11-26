@@ -81,7 +81,7 @@ export default function AdminSettings() {
         <div>
           <h2 className="text-lg font-extrabold sm:text-xl">Workspace settings</h2>
           <p className="mt-0.5 text-[12px] text-slate-500">
-            Configure how CityFix routes and prioritises reports. Changes are local only.
+            Configure how NagarMitra routes and prioritises reports. Changes are local only.
           </p>
         </div>
         <Button size="sm" onClick={save}>

@@ -45,7 +45,7 @@ export function ComplaintCard({
     const reportUrl = `${window.location.origin}/reports/${complaint.id}`;
     const shareData = {
       title: `Civic Alert: ${complaint.title}`,
-      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Track progress on CityFix:`,
+      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Track progress on NagarMitra:`,
       url: reportUrl,
     };
 

@@ -80,7 +80,7 @@ export default function AdminOverview() {
     link.setAttribute("href", encodedUri);
     link.setAttribute(
       "download",
-      `cityfix-executive-summary-${new Date().toISOString().split("T")[0]}.csv`
+      `nagarmitra-executive-summary-${new Date().toISOString().split("T")[0]}.csv`
     );
     document.body.appendChild(link);
     link.click();

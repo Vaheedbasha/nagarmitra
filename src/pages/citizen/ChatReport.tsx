@@ -240,7 +240,7 @@ export default function ChatReport() {
       {
         id: `bot-contact-${Date.now()}`,
         sender: "bot",
-        text: "Summary confirmed! Please confirm your mandatory contact details. By privacy policy, only CityFix Platform Admins can see your personal info; it is never shared in public posts or authority exports.",
+        text: "Summary confirmed! Please confirm your mandatory contact details. By privacy policy, only NagarMitra Platform Admins can see your personal info; it is never shared in public posts or authority exports.",
         time: "Now",
         type: "contact_form",
       },
@@ -290,7 +290,7 @@ export default function ChatReport() {
           id: `comm-${Date.now()}`,
           author: reporterName,
           date: new Date().toISOString().split("T")[0],
-          text: "Report filed via CityFix AI Assistant.",
+          text: "Report filed via NagarMitra AI Assistant.",
           badge: "Reporter",
         },
       ],
@@ -335,7 +335,7 @@ export default function ChatReport() {
             </span>
             <div>
               <h1 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                CityFix AI Assistant
+                NagarMitra AI Assistant
               </h1>
               <p className="text-[9.5px] sm:text-[10px] text-slate-400">
                 Civic Triage · {selectedCity} · {language === "hi" ? "हिंदी" : language === "te" ? "తెలుగు" : "English"}
@@ -756,7 +756,7 @@ export default function ChatReport() {
         </div>
 
         <p className="mt-1.5 text-center text-[9px] text-slate-400">
-          CityFix AI analyzes text, voice & photos. Video is stored for human inspection only.
+          NagarMitra AI analyzes text, voice & photos. Video is stored for human inspection only.
         </p>
       </div>
     </div>
