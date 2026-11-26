@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { COMPLAINTS, advanceComplaint } from "@/data/complaints";
+import type { Language } from "@/lib/translations";
 import type { Comment, Complaint, StatusId } from "@/types";
 
 interface ComplaintsContextValue {
@@ -19,6 +20,8 @@ interface ComplaintsContextValue {
   addComment: (complaintId: string, text: string, author?: string) => void;
   selectedCity: string;
   setSelectedCity: (city: string) => void;
+  language: Language;
+  setLanguage: (lang: Language) => void;
 }
 
 const ComplaintsContext = createContext<ComplaintsContextValue | null>(null);
@@ -26,6 +29,7 @@ const ComplaintsContext = createContext<ComplaintsContextValue | null>(null);
 export function ComplaintsProvider({ children }: { children: ReactNode }) {
   const [complaints, setComplaints] = useState<Complaint[]>(COMPLAINTS);
   const [selectedCity, setSelectedCity] = useState<string>("Riverton");
+  const [language, setLanguage] = useState<Language>("en");
 
   const addComplaint = useCallback((complaint: Complaint) => {
     setComplaints((current) => [complaint, ...current]);
@@ -131,6 +135,8 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       addComment,
       selectedCity,
       setSelectedCity,
+      language,
+      setLanguage,
     }),
     [
       complaints,
@@ -142,6 +148,8 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       addComment,
       selectedCity,
       setSelectedCity,
+      language,
+      setLanguage,
     ]
   );
 

@@ -18,13 +18,17 @@ import {
   Send,
   ShieldCheck,
   Sparkles,
+  ThumbsUp,
   Trash2,
   Video,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
 import { CATEGORIES, categoryMeta } from "@/lib/constants";
+import { TRANSLATIONS, CATEGORY_LABELS } from "@/lib/translations";
 import { buildTimeline, priorityFromScore, scoreFromFactors } from "@/data/complaints";
 import { mockId } from "@/lib/utils";
 import type { CategoryId, Complaint, PriorityFactors } from "@/types";
@@ -44,14 +48,16 @@ interface Message {
 
 export default function ChatReport() {
   const navigate = useNavigate();
-  const { addComplaint, selectedCity } = useComplaints();
+  const { addComplaint, selectedCity, language } = useComplaints();
   const { toast } = useToast();
+  const t = TRANSLATIONS[language];
 
   const [step, setStep] = useState<"input" | "analyzing" | "confirm" | "contact" | "done">("input");
   const [inputText, setInputText] = useState("");
   const [isRecording, setIsRecording] = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   // Evidence state
   const [attachedPhoto, setAttachedPhoto] = useState<string | null>(null);
@@ -79,11 +85,63 @@ export default function ChatReport() {
     {
       id: "msg-1",
       sender: "bot",
-      text: `Hello! I am your CityFix AI reporting assistant for ${selectedCity}. Describe any civic problem around you using text, or tap the mic to speak. You can also attach photos, audio clips, or videos (up to 1 minute).`,
+      text: t.aiGreeting.replace("{city}", selectedCity),
       time: "Just now",
       type: "text",
     },
   ]);
+
+  useEffect(() => {
+    if (messages.length === 1 && messages[0].sender === "bot") {
+      setMessages([
+        {
+          id: "msg-1",
+          sender: "bot",
+          text: t.aiGreeting.replace("{city}", selectedCity),
+          time: "Just now",
+          type: "text",
+        },
+      ]);
+    }
+  }, [language, selectedCity]);
+
+  const handlePlayAudioSummary = () => {
+    if (isPlayingAudio) {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      return;
+    }
+
+    setIsPlayingAudio(true);
+    let speechText = `You reported: ${aiSummary}. Proposed category: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}. Location: ${aiLocation}. Tap confirm to submit.`;
+    if (language === "hi") {
+      speechText = `आपकी शिकायत है: ${aiSummary}। श्रेणी: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}। स्थान: ${aiLocation}। सबमिट करने के लिए हरा बटन दबाएं।`;
+    } else if (language === "te") {
+      speechText = `మీ ఫిర్యాదు: ${aiSummary}। వర్గం: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}। ప్రాంతం: ${aiLocation}। సమర్పించడానికి నిర్ధారించండి.`;
+    }
+
+    if ("speechSynthesis" in window) {
+      try {
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        utterance.lang = language === "hi" ? "hi-IN" : language === "te" ? "te-IN" : "en-US";
+        utterance.rate = 0.95;
+        utterance.onend = () => setIsPlayingAudio(false);
+        utterance.onerror = () => setIsPlayingAudio(false);
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+      } catch {
+        setTimeout(() => setIsPlayingAudio(false), 4000);
+      }
+    } else {
+      setTimeout(() => setIsPlayingAudio(false), 4000);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -259,16 +317,16 @@ export default function ChatReport() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-100px)] max-w-2xl flex-col rounded-2xl border border-line bg-white shadow-card overflow-hidden">
+    <div className="flex flex-col h-[calc(100dvh-64px)] w-full max-w-2xl mx-auto bg-white sm:border-x sm:border-line sm:shadow-sm overflow-hidden">
       {/* Chat Header */}
-      <div className="flex items-center justify-between border-b border-line bg-white px-4 py-3">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between border-b border-line bg-white/95 px-3.5 py-2.5 sm:px-4 sm:py-3 shrink-0">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <Link
             to="/"
-            className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
             aria-label="Back to home"
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={19} />
           </Link>
           <div className="flex items-center gap-2">
             <span className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
@@ -276,11 +334,11 @@ export default function ChatReport() {
               <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-white" />
             </span>
             <div>
-              <h1 className="text-sm font-bold text-slate-900 leading-tight">
+              <h1 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
                 CityFix AI Assistant
               </h1>
-              <p className="text-[10px] text-slate-400">
-                Civic Triage · {selectedCity}
+              <p className="text-[9.5px] sm:text-[10px] text-slate-400">
+                Civic Triage · {selectedCity} · {language === "hi" ? "हिंदी" : language === "te" ? "తెలుగు" : "English"}
               </p>
             </div>
           </div>
@@ -293,14 +351,14 @@ export default function ChatReport() {
       </div>
 
       {/* Message Stream */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-5">
+      <div className="flex-1 space-y-3.5 overflow-y-auto p-3.5 sm:p-5">
         {messages.map((msg) => (
           <div
             key={msg.id}
             className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
           >
             <div
-              className={`max-w-[88%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+              className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
                 msg.sender === "user"
                   ? "bg-brand-600 text-white shadow-sm rounded-br-none"
                   : "bg-slate-50 text-slate-800 border border-line rounded-bl-none"
@@ -335,14 +393,47 @@ export default function ChatReport() {
 
             {/* AI Confirmation Card */}
             {msg.type === "ai_confirmation" && step === "confirm" && (
-              <div className="mt-2 w-full max-w-md rounded-2xl border border-brand-200 bg-brand-50/50 p-4 shadow-sm animate-fade-up">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700">
-                  <Sparkles size={13} /> AI Summary & Classification
+              <div className="mt-2 w-full max-w-md rounded-2xl border border-brand-200 bg-brand-50/70 p-4 shadow-sm animate-fade-up">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700">
+                    <Sparkles size={13} /> AI Summary & Classification
+                  </div>
+
+                  {/* Audio Readback Button for Both Educated and Uneducated Citizens */}
+                  <button
+                    type="button"
+                    onClick={handlePlayAudioSummary}
+                    className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-bold shadow-sm transition ${
+                      isPlayingAudio
+                        ? "bg-emerald-600 text-white animate-pulse"
+                        : "bg-white border border-brand-300 text-brand-700 hover:bg-brand-50"
+                    }`}
+                    title={isPlayingAudio ? t.stopAudio : t.listenAloud}
+                  >
+                    {isPlayingAudio ? (
+                      <>
+                        <VolumeX size={13} /> {t.stopAudio}
+                      </>
+                    ) : (
+                      <>
+                        <Volume2 size={13} className="text-brand-600" /> {t.listenAloud}
+                      </>
+                    )}
+                  </button>
                 </div>
+
+                {isPlayingAudio && (
+                  <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-2 text-[11px] text-emerald-800 animate-pulse">
+                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span>{t.speaking}</span>
+                  </div>
+                )}
 
                 <div className="mt-2.5 space-y-2 text-xs">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500">Proposed Summary:</label>
+                    <label className="text-[10px] font-semibold text-slate-500">
+                      {language === "hi" ? "शिकायत का सारांश:" : language === "te" ? "ఫిర్యాదు సారాంశం:" : "Proposed Summary:"}
+                    </label>
                     <textarea
                       value={aiSummary}
                       onChange={(e) => setAiSummary(e.target.value)}
@@ -353,7 +444,9 @@ export default function ChatReport() {
 
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-500">Category:</label>
+                      <label className="text-[10px] font-semibold text-slate-500">
+                        {language === "hi" ? "श्रेणी (Category):" : language === "te" ? "వర్గం (Category):" : "Category:"}
+                      </label>
                       <select
                         value={aiCategory}
                         onChange={(e) => setAiCategory(e.target.value as CategoryId)}
@@ -361,13 +454,15 @@ export default function ChatReport() {
                       >
                         {CATEGORIES.map((cat) => (
                           <option key={cat.id} value={cat.id}>
-                            {cat.label}
+                            {CATEGORY_LABELS[language][cat.id] || cat.label}
                           </option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-500">Location:</label>
+                      <label className="text-[10px] font-semibold text-slate-500">
+                        {language === "hi" ? "स्थान (Location):" : language === "te" ? "ప్రాంతం (Location):" : "Location:"}
+                      </label>
                       <input
                         value={aiLocation}
                         onChange={(e) => setAiLocation(e.target.value)}
@@ -378,12 +473,12 @@ export default function ChatReport() {
                 </div>
 
                 <div className="mt-3 flex items-center justify-between border-t border-brand-200/60 pt-2.5">
-                  <span className="text-[10px] text-slate-500">You can edit before confirming</span>
+                  <span className="text-[10px] text-slate-500">{t.editSummary}</span>
                   <button
                     onClick={handleConfirmAi}
-                    className="focus-ring flex items-center gap-1 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-brand-700"
+                    className="focus-ring flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-brand-700"
                   >
-                    Confirm & Proceed <ChevronRight size={13} />
+                    {t.confirmProceed} <ChevronRight size={13} />
                   </button>
                 </div>
               </div>
@@ -397,12 +492,12 @@ export default function ChatReport() {
                   Mandatory Reporter Details
                 </div>
                 <p className="mt-1 text-[10.5px] leading-relaxed text-slate-400">
-                  🔒 Private metadata: Name, Phone, and Email are confidential and visible only to CityFix Platform Admins.
+                  {t.reporterConfidential}
                 </p>
 
                 <div className="mt-3 space-y-2 text-xs">
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-500">Full Name *</label>
+                    <label className="text-[10px] font-semibold text-slate-500">{t.reporterName}</label>
                     <input
                       value={reporterName}
                       onChange={(e) => setReporterName(e.target.value)}
@@ -412,7 +507,7 @@ export default function ChatReport() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-500">Phone Number *</label>
+                      <label className="text-[10px] font-semibold text-slate-500">{t.reporterPhone}</label>
                       <input
                         value={reporterPhone}
                         onChange={(e) => setReporterPhone(e.target.value)}
@@ -421,7 +516,7 @@ export default function ChatReport() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-semibold text-slate-500">Email Address *</label>
+                      <label className="text-[10px] font-semibold text-slate-500">{t.reporterEmail}</label>
                       <input
                         type="email"
                         value={reporterEmail}
@@ -438,7 +533,7 @@ export default function ChatReport() {
                   disabled={!reporterName || !reporterPhone || !reporterEmail}
                   className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
                 >
-                  <Check size={14} /> Submit & Publish Report
+                  <Check size={14} /> {t.yesSubmit}
                 </button>
               </div>
             )}
@@ -449,18 +544,22 @@ export default function ChatReport() {
                 <div className="flex items-center gap-2">
                   <CheckCircle2 size={18} className="text-emerald-600" />
                   <span className="text-xs font-bold text-emerald-900">
-                    Report Published · ID #{createdReport.id}
+                    {t.reportPublished} · ID #{createdReport.id}
                   </span>
                 </div>
                 <p className="mt-1 text-[11px] text-emerald-800">
-                  Your complaint is live on the city feed and queued for ward triage.
+                  {language === "hi"
+                    ? "आपकी शिकायत दर्ज हो गई है और संबंधित वार्ड टीम को भेज दी गई है।"
+                    : language === "te"
+                    ? "మీ ఫిర్యాదు నమోదైంది మరియు వార్డు అధికారులకు పంపబడింది."
+                    : "Your complaint is live on the city feed and queued for ward triage."}
                 </p>
                 <div className="mt-3 flex gap-2">
                   <Link
                     to={`/reports/${createdReport.id}`}
                     className="flex-1 rounded-xl bg-emerald-600 py-2 text-center text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
                   >
-                    View Report Details ➔
+                    {t.viewDetails}
                   </Link>
                   <Link
                     to="/explore"
@@ -488,7 +587,7 @@ export default function ChatReport() {
 
       {/* Media Attachments Preview bar if selected */}
       {(attachedPhoto || attachedVideo || attachedAudio) && (
-        <div className="flex items-center gap-2 border-t border-line bg-slate-50 px-4 py-2 text-xs">
+        <div className="flex items-center gap-2 border-t border-line bg-slate-50 px-4 py-2 text-xs shrink-0">
           <span className="font-semibold text-slate-600">Attached:</span>
           {attachedPhoto && (
             <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] text-slate-700">
@@ -519,7 +618,7 @@ export default function ChatReport() {
 
       {/* Plus (+) Menu Drawer */}
       {plusMenuOpen && (
-        <div className="border-t border-line bg-white p-3 animate-fade-up">
+        <div className="border-t border-line bg-white p-3 shrink-0 animate-fade-up">
           <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400">
             <span>Attach Evidence</span>
             <button onClick={() => setPlusMenuOpen(false)}>
@@ -579,7 +678,7 @@ export default function ChatReport() {
 
       {/* Recording Waveform Banner */}
       {isRecording && (
-        <div className="flex items-center justify-between border-t border-red-200 bg-red-50/80 px-4 py-2.5 text-red-700 animate-pulse">
+        <div className="flex items-center justify-between border-t border-red-200 bg-red-50/80 px-4 py-2.5 text-red-700 shrink-0 animate-pulse">
           <div className="flex items-center gap-2 text-xs font-bold">
             <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping" />
             <span>Recording voice... ({recordingSeconds}s / 60s max)</span>
@@ -593,8 +692,8 @@ export default function ChatReport() {
         </div>
       )}
 
-      {/* Chat Input Bar */}
-      <div className="border-t border-line bg-white p-3">
+      {/* Chat Input Bar - Docked Cleanly at Bottom */}
+      <div className="border-t border-line bg-white p-2.5 sm:p-3 shrink-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
         <div className="flex items-center gap-2">
           {/* Plus (+) Button */}
           <button
@@ -619,7 +718,13 @@ export default function ChatReport() {
                 handleSendMessage();
               }
             }}
-            placeholder="Type your complaint or click mic..."
+            placeholder={
+              language === "hi"
+                ? "समस्या लिखें या माइक दबाएं..."
+                : language === "te"
+                ? "సమస్యను టైప్ చేయండి లేదా మాట్లాడండి..."
+                : "Type your complaint or click mic..."
+            }
             disabled={step === "analyzing" || isRecording}
             className="field h-10 flex-1 px-3 text-xs placeholder:text-slate-400"
           />
@@ -633,7 +738,7 @@ export default function ChatReport() {
                 ? "border-red-500 bg-red-500 text-white"
                 : "border-line bg-slate-50 text-slate-600 hover:text-brand-600"
             }`}
-            title={isRecording ? "Stop recording" : "Record voice"}
+            title={isRecording ? "Stop recording" : t.quickSpeak}
           >
             <Mic size={17} />
           </button>
@@ -650,7 +755,7 @@ export default function ChatReport() {
           </button>
         </div>
 
-        <p className="mt-2 text-center text-[9.5px] text-slate-400">
+        <p className="mt-1.5 text-center text-[9px] text-slate-400">
           CityFix AI analyzes text, voice & photos. Video is stored for human inspection only.
         </p>
       </div>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   ArrowUpRight,
+  Camera,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
@@ -17,12 +18,14 @@ import {
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { CATEGORIES, TOP_CATEGORY_IDS, categoryMeta, statusMeta } from "@/lib/constants";
+import { TRANSLATIONS, CATEGORY_LABELS } from "@/lib/translations";
 import { StatusChip } from "@/components/ui/Badge";
 import { ComplaintCard } from "@/components/complaint/ComplaintCard";
 import { cn, timeAgo } from "@/lib/utils";
 
 export default function Home() {
-  const { complaints } = useComplaints();
+  const { complaints, selectedCity, language } = useComplaints();
+  const t = TRANSLATIONS[language];
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
 
   const nearYou = complaints.filter((c) => c.status !== "resolved").slice(0, 3);
@@ -45,16 +48,15 @@ export default function Home() {
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-[11px] font-medium text-brand-100 ring-1 ring-inset ring-white/15">
               <MapPin size={12} />
-              Riverton · Ward 4
+              {selectedCity} · Ward 4
             </span>
             <h1 className="mt-4 font-display text-[26px] font-extrabold leading-[1.15] tracking-tight sm:text-[34px]">
-              Good morning, Ananya.
+              {t.heroTitle}
               <br />
-              <span className="text-brand-200">Let's fix something today.</span>
+              <span className="text-brand-200">{t.heroSubtitle}</span>
             </h1>
             <p className="mt-2.5 max-w-md text-[13px] leading-relaxed text-brand-100/90 sm:text-sm">
-              Spot a pothole, a broken light or an overflowing bin? Report it in under a
-              minute and track every step until it is fixed.
+              {t.heroDesc}
             </p>
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
@@ -62,14 +64,14 @@ export default function Home() {
                 to="/report/chat"
                 className="focus-ring inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-brand-700 shadow-sm transition hover:bg-brand-50"
               >
-                Report an issue
+                {t.reportBtn}
                 <ArrowRight size={16} />
               </Link>
               <Link
                 to="/explore"
                 className="focus-ring inline-flex h-11 items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-4 text-sm font-semibold text-white transition hover:bg-white/10"
               >
-                Explore city map
+                {t.exploreBtn}
               </Link>
             </div>
 
@@ -131,87 +133,65 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Reporting methods */}
-      <section className="space-y-3">
+      {/* 3-Way Quick Action Bar for Educated & Uneducated Citizens */}
+      <section className="grid grid-cols-3 gap-2 sm:gap-3">
         <Link
           to="/report/chat"
-          className="surface surface-hover group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-amber-50/40"
+          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
         >
-          <div className="flex items-start sm:items-center gap-3.5">
-            <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:scale-105">
-              <Sparkles size={22} />
-              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
-            </span>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-[15px] font-bold text-slate-900">CityFix AI Assistant</h2>
-                <span className="rounded-md bg-brand-100 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-brand-700">
-                  Recommended · Fast
-                </span>
-              </div>
-              <p className="mt-0.5 text-[12px] leading-relaxed text-slate-500">
-                Unified chat triage with speech, photos & video attachments. Automated priority ranking.
-              </p>
-            </div>
-          </div>
-          <span className="inline-flex items-center gap-1.5 self-end sm:self-auto rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm group-hover:bg-brand-700">
-            Start AI Report <ArrowRight size={14} />
+          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white transition">
+            <Mic size={20} />
+          </span>
+          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
+            {t.quickSpeak}
+          </span>
+          <span className="text-[9.5px] text-slate-400 hidden sm:block">
+            Voice in any language
           </span>
         </Link>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Link
-            to="/report/voice"
-            className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
-          >
-            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition group-hover:scale-105">
-              <Mic size={20} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className="text-[14px] font-bold">Voice-only report</h3>
-                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700">
-                  Handsfree
-                </span>
-              </div>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-slate-500">
-                Speak handsfree with instant audio transcription.
-              </p>
-            </div>
-            <ArrowUpRight
-              size={16}
-              className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
-            />
-          </Link>
+        <Link
+          to="/report/chat"
+          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
+        >
+          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 group-hover:scale-105 group-hover:bg-amber-500 group-hover:text-white transition">
+            <Camera size={20} />
+          </span>
+          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
+            {t.quickPhoto}
+          </span>
+          <span className="text-[9.5px] text-slate-400 hidden sm:block">
+            Auto-triage from photo
+          </span>
+        </Link>
 
-          <Link
-            to="/report/manual"
-            className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:scale-105 group-hover:bg-slate-200">
-              <PenLine size={19} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[14px] font-bold">Classic form report</h3>
-              <p className="mt-0.5 text-[11.5px] leading-relaxed text-slate-500">
-                Fill manual structured fields and drop a map pin.
-              </p>
-            </div>
-            <ArrowUpRight
-              size={16}
-              className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
-            />
-          </Link>
-        </div>
+        <Link
+          to="/report/chat"
+          className="surface surface-hover group flex flex-col items-center justify-center p-3 sm:p-4 text-center rounded-2xl border border-line bg-white shadow-sm"
+        >
+          <span className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-brand-50 text-brand-600 group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white transition">
+            <Sparkles size={20} />
+          </span>
+          <span className="mt-2 text-[11px] sm:text-xs font-bold text-slate-800 line-clamp-1">
+            {t.quickChat}
+          </span>
+          <span className="text-[9.5px] text-slate-400 hidden sm:block">
+            Guided AI assistance
+          </span>
+        </Link>
       </section>
 
       {/* Categories */}
       <section>
         <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
           <div>
-            <h2 className="text-[17px] font-bold">What's the issue?</h2>
+            <h2 className="text-[17px] font-bold">{t.quickCategories}</h2>
             <p className="mt-0.5 text-[12px] text-slate-500">
-              Most common civic issues reported in your city.
+              {language === "hi"
+                ? "अपने शहर में सबसे ज्यादा रिपोर्ट की जाने वाली समस्याएं।"
+                : language === "te"
+                ? "మీ నగరంలో అత్యధికంగా నమోదయ్యే సమస్యలు."
+                : "Most common civic issues reported in your city."}
             </p>
           </div>
           <button
@@ -222,12 +202,12 @@ export default function Home() {
             <Layers size={14} className="text-brand-600" />
             {isCategoriesExpanded ? (
               <>
-                Show less (6 categories)
+                {t.showLessCategories}
                 <ChevronUp size={13} className="text-slate-400" />
               </>
             ) : (
               <>
-                View all 12 categories
+                {t.viewAllCategories}
                 <ChevronDown size={13} className="text-slate-400" />
               </>
             )}
@@ -245,7 +225,7 @@ export default function Home() {
             return (
               <Link
                 key={category.id}
-                to={`/report/manual?category=${category.id}`}
+                to={`/report/chat?category=${category.id}`}
                 className="surface surface-hover group flex flex-col justify-between p-3 sm:p-3.5 animate-fade-in"
               >
                 <div>
@@ -258,7 +238,7 @@ export default function Home() {
                     </span>
                   </div>
                   <h3 className="mt-2.5 text-[12.5px] font-bold leading-snug text-slate-800 transition group-hover:text-brand-600">
-                    {category.label}
+                    {CATEGORY_LABELS[language][category.id] || category.label}
                   </h3>
                 </div>
                 <p className="mt-2 truncate text-[10px] text-slate-400">
