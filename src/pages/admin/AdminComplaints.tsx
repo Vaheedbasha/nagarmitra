@@ -60,6 +60,78 @@ export default function AdminComplaints() {
     setSort("newest");
   };
 
+  const handleExportCsv = () => {
+    if (filtered.length === 0) {
+      toast({
+        title: "No complaints to export",
+        description: "Adjust your search filters and try again.",
+        variant: "info",
+      });
+      return;
+    }
+
+    const headers = [
+      "Complaint ID",
+      "Title",
+      "Category",
+      "Status",
+      "Priority",
+      "Priority Score",
+      "City",
+      "Location",
+      "Area",
+      "Date Submitted",
+      "Last Updated",
+      "Citizen Confirmations",
+      "AI Summary",
+      "Reporter Privacy Status",
+    ];
+
+    const escapeCsv = (str: string) => {
+      if (!str) return '""';
+      const clean = str.replace(/"/g, '""');
+      return `"${clean}"`;
+    };
+
+    const rows = filtered.map((c) => [
+      escapeCsv(c.id),
+      escapeCsv(c.title),
+      escapeCsv(c.category),
+      escapeCsv(c.status),
+      escapeCsv(c.priority),
+      c.score,
+      escapeCsv(c.city || "Riverton"),
+      escapeCsv(c.location),
+      escapeCsv(c.area),
+      escapeCsv(c.date),
+      escapeCsv(c.updated),
+      c.upvotes,
+      escapeCsv(c.aiSummary),
+      escapeCsv("Confidential (Protected by Platform)"),
+    ]);
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `cityfix-complaints-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "CSV Export Complete",
+      description: `Exported ${filtered.length} complaints. Personal reporter contact details redacted for privacy.`,
+      variant: "success",
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -72,13 +144,7 @@ export default function AdminComplaints() {
         <Button
           size="sm"
           variant="outline"
-          onClick={() =>
-            toast({
-              title: "Export queued",
-              description: "CSV export is simulated in this prototype.",
-              variant: "info",
-            })
-          }
+          onClick={handleExportCsv}
         >
           <Download size={14} />
           Export CSV

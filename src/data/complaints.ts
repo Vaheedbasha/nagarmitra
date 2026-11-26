@@ -603,6 +603,89 @@ const RAW: RawComplaint[] = [
       "Acute water supply failure in institutional premises",
     ],
   },
+  {
+    id: "CF-2026-0201",
+    title: "Severe waterlogging outside Metro Central Station",
+    description:
+      "Water level reached knee height outside the main terminal gate due to collapsed drain conduits. Commuters and city buses are stranded in peak morning hours.",
+    aiSummary:
+      "Critical stormwater inundation and transit blockage outside Metro Central Station affecting thousands of morning commuters.",
+    category: "drainage",
+    city: "Metro Heights",
+    status: "progress",
+    factors: { severity: 92, impact: 95, recurrence: 75, urgency: 94 },
+    location: "Station Boulevard, Ward 1",
+    area: "Central Terminal",
+    date: "2026-11-25",
+    photo: "/evidence/water.jpg",
+    reporter: {
+      name: "Aakash Mehta",
+      anonymous: false,
+      phone: "+91 98•• ••11 02",
+      reports: 8,
+      trust: 94,
+    },
+    coordinates: { x: 50, y: 45 },
+    upvotes: 42,
+    why: [
+      "Transit node blockage during commute hours",
+      "Knee-height street flood risk",
+    ],
+    comments: [
+      {
+        id: "comm-201-1",
+        author: "Priya Nair",
+        date: "2026-11-25",
+        text: "Had to take an hour detour. Traffic police have diverted buses via 2nd Avenue.",
+        badge: "Commuter",
+      },
+      {
+        id: "comm-201-2",
+        author: "Devendra S.",
+        date: "2026-11-25",
+        text: "Municipal pumps just started dewatering on the north side.",
+        badge: "Ward 1 Resident",
+      },
+    ],
+  },
+  {
+    id: "CF-2026-0202",
+    title: "Broken streetlights along Bay Promenade Walkway",
+    description:
+      "Eight consecutive pole lights are non-functional for 200 meters along the coastal walking path, creating severe safety risks after dark.",
+    aiSummary:
+      "Unlit 200m coastal stretch along public promenade presenting severe nighttime pedestrian safety concern.",
+    category: "electricity",
+    city: "Bay City",
+    status: "submitted",
+    factors: { severity: 68, impact: 74, recurrence: 50, urgency: 70 },
+    location: "Marine Promenade, Ward 2",
+    area: "Seafront",
+    date: "2026-11-26",
+    photo: "/evidence/streetlight.jpg",
+    reporter: {
+      name: "Farhan Qureshi",
+      anonymous: false,
+      phone: "+91 97•• ••88 33",
+      reports: 2,
+      trust: 82,
+    },
+    coordinates: { x: 65, y: 70 },
+    upvotes: 18,
+    why: [
+      "High evening pedestrian traffic",
+      "Repeated coastal circuit tripping",
+    ],
+    comments: [
+      {
+        id: "comm-202-1",
+        author: "Sneha Patel",
+        date: "2026-11-26",
+        text: "Very dark after 7 PM. Seniors and women avoid walking here now.",
+        badge: "Verified Resident",
+      },
+    ],
+  },
 ];
 
 export const COMPLAINTS: Complaint[] = RAW.map((raw) => {
@@ -611,6 +694,16 @@ export const COMPLAINTS: Complaint[] = RAW.map((raw) => {
   const lastDone = [...timeline].reverse().find((event) => event.done);
   return {
     ...raw,
+    city: raw.city ?? "Riverton",
+    comments: raw.comments ?? [
+      {
+        id: `comm-default-${raw.id}`,
+        author: "Local Resident",
+        date: raw.date,
+        text: "Noticed this issue worsening over the past week. Glad someone reported it on CityFix.",
+        badge: "Verified Resident",
+      },
+    ],
     score,
     priority: priorityFromScore(score),
     timeline,

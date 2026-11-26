@@ -59,7 +59,7 @@ export default function Home() {
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
               <Link
-                to="/report/manual"
+                to="/report/chat"
                 className="focus-ring inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-brand-700 shadow-sm transition hover:bg-brand-50"
               >
                 Report an issue
@@ -132,50 +132,77 @@ export default function Home() {
       </section>
 
       {/* Reporting methods */}
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="space-y-3">
         <Link
-          to="/report/voice"
-          className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
+          to="/report/chat"
+          className="surface surface-hover group relative overflow-hidden flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 border-brand-200 bg-gradient-to-r from-brand-50/70 via-white to-amber-50/40"
         >
-          <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:scale-105">
-            <Mic size={21} />
-            <span className="absolute -inset-1 rounded-2xl border border-brand-300/50 opacity-0 transition group-hover:opacity-100" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[15px] font-bold">Report using voice</h2>
-              <span className="rounded-md bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
-                Fastest
-              </span>
+          <div className="flex items-start sm:items-center gap-3.5">
+            <span className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition group-hover:scale-105">
+              <Sparkles size={22} />
+              <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-amber-500 ring-2 ring-white" />
+            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[15px] font-bold text-slate-900">CityFix AI Assistant</h2>
+                <span className="rounded-md bg-brand-100 px-2 py-0.5 text-[9.5px] font-bold uppercase tracking-wider text-brand-700">
+                  Recommended · Fast
+                </span>
+              </div>
+              <p className="mt-0.5 text-[12px] leading-relaxed text-slate-500">
+                Unified chat triage with speech, photos & video attachments. Automated priority ranking.
+              </p>
             </div>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-slate-500">
-              Speak naturally — we'll transcribe and summarise it for you.
-            </p>
           </div>
-          <ArrowUpRight
-            size={17}
-            className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
-          />
+          <span className="inline-flex items-center gap-1.5 self-end sm:self-auto rounded-xl bg-brand-600 px-3.5 py-2 text-xs font-bold text-white shadow-sm group-hover:bg-brand-700">
+            Start AI Report <ArrowRight size={14} />
+          </span>
         </Link>
 
-        <Link
-          to="/report/manual"
-          className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
-        >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-50 text-accent-600 transition group-hover:scale-105 group-hover:bg-accent-100">
-            <PenLine size={20} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-[15px] font-bold">Report manually</h2>
-            <p className="mt-0.5 text-[12px] leading-relaxed text-slate-500">
-              Fill in the details, drop a pin and add a photo.
-            </p>
-          </div>
-          <ArrowUpRight
-            size={17}
-            className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
-          />
-        </Link>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link
+            to="/report/voice"
+            className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
+          >
+            <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-sm transition group-hover:scale-105">
+              <Mic size={20} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="text-[14px] font-bold">Voice-only report</h3>
+                <span className="rounded-md bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+                  Handsfree
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11.5px] leading-relaxed text-slate-500">
+                Speak handsfree with instant audio transcription.
+              </p>
+            </div>
+            <ArrowUpRight
+              size={16}
+              className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
+            />
+          </Link>
+
+          <Link
+            to="/report/manual"
+            className="surface surface-hover group flex items-start gap-3.5 p-4 sm:p-5"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition group-hover:scale-105 group-hover:bg-slate-200">
+              <PenLine size={19} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[14px] font-bold">Classic form report</h3>
+              <p className="mt-0.5 text-[11.5px] leading-relaxed text-slate-500">
+                Fill manual structured fields and drop a map pin.
+              </p>
+            </div>
+            <ArrowUpRight
+              size={16}
+              className="mt-1 shrink-0 text-slate-300 transition group-hover:text-brand-600"
+            />
+          </Link>
+        </div>
       </section>
 
       {/* Categories */}

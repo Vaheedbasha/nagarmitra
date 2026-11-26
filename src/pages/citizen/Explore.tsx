@@ -22,9 +22,11 @@ import type { CategoryId, StatusId } from "@/types";
 
 type StatusFilter = StatusId | "all";
 type CategoryFilter = CategoryId | "all";
+type FeedTab = "top" | "your_city" | "other_cities";
 
 export default function Explore() {
-  const { complaints } = useComplaints();
+  const { complaints, selectedCity, setSelectedCity } = useComplaints();
+  const [feedTab, setFeedTab] = useState<FeedTab>("top");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [status, setStatus] = useState<StatusFilter>("all");
@@ -32,22 +34,39 @@ export default function Explore() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return complaints.filter((complaint) => {
+    const result = complaints.filter((complaint) => {
+      // 1. Feed tab filtering
+      const city = complaint.city ?? "Riverton";
+      if (feedTab === "your_city" && city !== selectedCity) return false;
+      if (feedTab === "other_cities" && city === selectedCity) return false;
+
+      // 2. Search query
       const matchesQuery =
         !q ||
         complaint.title.toLowerCase().includes(q) ||
         complaint.location.toLowerCase().includes(q) ||
         complaint.area.toLowerCase().includes(q) ||
-        complaint.id.toLowerCase().includes(q);
+        complaint.id.toLowerCase().includes(q) ||
+        city.toLowerCase().includes(q);
+
+      // 3. Category
       const matchesCategory =
         category === "all" ||
         complaint.category === category ||
         (category === "waste" && complaint.category === "garbage") ||
         (category === "electricity" && complaint.category === "streetlights");
+
+      // 4. Status
       const matchesStatus = status === "all" || complaint.status === status;
       return matchesQuery && matchesCategory && matchesStatus;
     });
-  }, [complaints, query, category, status]);
+
+    // Top feed is strictly chronological: newest first
+    if (feedTab === "top") {
+      return result.sort((a, b) => (a.date < b.date ? 1 : -1));
+    }
+    return result;
+  }, [complaints, query, category, status, feedTab, selectedCity]);
 
   const selected =
     filtered.find((complaint) => complaint.id === selectedId) ?? filtered[0] ?? null;
@@ -74,19 +93,74 @@ export default function Explore() {
             <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
               <Compass size={16} />
             </span>
-            <h1 className="text-[22px] font-extrabold sm:text-2xl">Explore Riverton</h1>
+            <h1 className="text-[22px] font-extrabold sm:text-2xl">
+              {feedTab === "your_city" ? `Explore ${selectedCity}` : feedTab === "other_cities" ? "Other Cities" : "Top Civic Feed"}
+            </h1>
           </div>
           <p className="mt-1 text-[12.5px] text-slate-500">
-            {counts.all} reports across 8 wards · updated moments ago
+            {filtered.length} reports {feedTab === "your_city" ? `in ${selectedCity}` : "across monitored cities"} · updated moments ago
           </p>
         </div>
         <Link
-          to="/report/manual"
+          to="/report/chat"
           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700"
         >
           Report an issue
           <ArrowRight size={14} />
         </Link>
+      </div>
+
+      {/* 3 Main Public Feed Tabs mandated by specification */}
+      <div className="mb-3.5 flex items-center justify-between border-b border-line pb-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setFeedTab("top")}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              feedTab === "top"
+                ? "bg-brand-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            )}
+          >
+            🔥 Top (Newest)
+          </button>
+          <button
+            onClick={() => setFeedTab("your_city")}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              feedTab === "your_city"
+                ? "bg-brand-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            )}
+          >
+            📍 Your City ({selectedCity})
+          </button>
+          <button
+            onClick={() => setFeedTab("other_cities")}
+            className={cn(
+              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              feedTab === "other_cities"
+                ? "bg-brand-600 text-white shadow-sm"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+            )}
+          >
+            🌐 Other Cities
+          </button>
+        </div>
+
+        {/* Change City selector */}
+        <div className="hidden sm:flex items-center gap-1 text-[11px] text-slate-400">
+          <span>City:</span>
+          <select
+            value={selectedCity}
+            onChange={(e) => setSelectedCity(e.target.value)}
+            className="rounded-lg border border-line bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 outline-none"
+          >
+            <option value="Riverton">Riverton</option>
+            <option value="Metro Heights">Metro Heights</option>
+            <option value="Bay City">Bay City</option>
+          </select>
+        </div>
       </div>
 
       {/* Search + filters */}

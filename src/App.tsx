@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import Home from "@/pages/citizen/Home";
 import VoiceReport from "@/pages/citizen/VoiceReport";
 import ManualReport from "@/pages/citizen/ManualReport";
+import ChatReport from "@/pages/citizen/ChatReport";
 import Explore from "@/pages/citizen/Explore";
 import MyReports from "@/pages/citizen/MyReports";
 import ComplaintDetail from "@/pages/citizen/ComplaintDetail";
@@ -58,6 +59,8 @@ export default function App() {
         <Routes>
           <Route element={<CitizenLayout />}>
             <Route path="/" element={<Home />} />
+            <Route path="/report" element={<ChatReport />} />
+            <Route path="/report/chat" element={<ChatReport />} />
             <Route path="/report/voice" element={<VoiceReport />} />
             <Route path="/report/manual" element={<ManualReport />} />
             <Route path="/explore" element={<Explore />} />

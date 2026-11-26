@@ -62,6 +62,37 @@ export default function AdminOverview() {
 
   const trendData = range === "7d" ? WEEKLY_TREND : REPORTS_TREND;
 
+  const handleExportSummary = () => {
+    const rows = [
+      ["Metric", "Value", "Period", "Target SLA"],
+      ["Total Civic Reports", OVERVIEW_STATS.total.toString(), "This Quarter", "100% triage"],
+      ["Pending Triage", OVERVIEW_STATS.pending.toString(), "Current", "<48h SLA"],
+      ["In Progress Crews", OVERVIEW_STATS.progress.toString(), "Current", "<72h dispatch"],
+      ["Resolved", OVERVIEW_STATS.resolved.toString(), "This Quarter", ">90% resolution"],
+      ["High Priority Flagged", OVERVIEW_STATS.highPriority.toString(), "Current", "Zero critical backlog"],
+      ["Resolved Within SLA", "91.4%", "This Quarter", ">90% target"],
+    ];
+
+    const csvContent =
+      "data:text/csv;charset=utf-8," + rows.map((e) => e.join(",")).join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute(
+      "download",
+      `cityfix-executive-summary-${new Date().toISOString().split("T")[0]}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Executive Report Exported",
+      description: "Summary CSV generated and downloaded.",
+      variant: "success",
+    });
+  };
+
   return (
     <div className="space-y-4 sm:space-y-5">
       {/* Page intro */}
@@ -89,13 +120,7 @@ export default function AdminOverview() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              toast({
-                title: "Report export queued",
-                description: "Demo only — no file is generated in this prototype.",
-                variant: "info",
-              })
-            }
+            onClick={handleExportSummary}
           >
             <Download size={14} />
             Export

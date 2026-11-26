@@ -39,8 +39,18 @@ export interface Reporter {
   name: string;
   anonymous: boolean;
   phone: string;
+  email?: string;
   reports: number;
   trust: number;
+}
+
+export interface Comment {
+  id: string;
+  author: string;
+  avatar?: string;
+  date: string;
+  text: string;
+  badge?: string;
 }
 
 export interface Complaint {
@@ -53,15 +63,24 @@ export interface Complaint {
   priority: PriorityId;
   score: number;
   factors: PriorityFactors;
+  city?: string;
   location: string;
   area: string;
   date: string;
   updated: string;
   photo?: string;
+  video?: string;
+  audio?: string;
   reporter: Reporter;
   coordinates: { x: number; y: number };
   upvotes: number;
   why: string[];
   timeline: TimelineEvent[];
   resolutionNote?: string;
+  comments?: Comment[];
+  aiEdited?: boolean;
+  aiEditedAt?: string;
+  escalatedTo?: string;
+  escalationSla?: string;
+  escalationNote?: string;
 }
