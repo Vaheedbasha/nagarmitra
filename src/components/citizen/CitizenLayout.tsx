@@ -91,11 +91,11 @@ export function CitizenLayout() {
 
             <Link
               to="/admin"
-              className="focus-ring inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+              className="focus-ring hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
               title="Open the admin demo"
             >
               <LayoutDashboard size={14} />
-              <span className="hidden sm:inline">Admin demo</span>
+              <span>Admin demo</span>
             </Link>
             <Link
               to="/profile"
