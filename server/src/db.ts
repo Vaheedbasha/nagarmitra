@@ -4,16 +4,14 @@ import { randomUUID } from "node:crypto";
 import { DatabaseSync, type SQLInputValue } from "node:sqlite";
 import { config } from "./config.js";
 
-fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
-fs.mkdirSync(config.uploadDir, { recursive: true });
+let dbInstance: DatabaseSync | null = null;
 
-export const db = new DatabaseSync(config.dbPath);
+function initSchema(database: DatabaseSync) {
+  database.exec("PRAGMA journal_mode = WAL;");
+  database.exec("PRAGMA foreign_keys = ON;");
+  database.exec("PRAGMA busy_timeout = 5000;");
 
-db.exec("PRAGMA journal_mode = WAL;");
-db.exec("PRAGMA foreign_keys = ON;");
-db.exec("PRAGMA busy_timeout = 5000;");
-
-db.exec(`
+  database.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
@@ -169,6 +167,35 @@ CREATE INDEX IF NOT EXISTS idx_comments_complaint ON comments(complaint_id);
 CREATE INDEX IF NOT EXISTS idx_media_complaint ON media(complaint_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
 `);
+}
+
+export function getDb(): DatabaseSync {
+  if (!dbInstance) {
+    fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
+    fs.mkdirSync(config.uploadDir, { recursive: true });
+    dbInstance = new DatabaseSync(config.dbPath);
+    initSchema(dbInstance);
+  }
+  return dbInstance;
+}
+
+export function reopenDb(): DatabaseSync {
+  if (dbInstance) {
+    try {
+      dbInstance.close();
+    } catch {}
+    dbInstance = null;
+  }
+  return getDb();
+}
+
+export const db: DatabaseSync = new Proxy({} as DatabaseSync, {
+  get(_target, prop) {
+    const instance = getDb();
+    const value = (instance as any)[prop];
+    return typeof value === "function" ? value.bind(instance) : value;
+  },
+});
 
 export const nowIso = () => new Date().toISOString();
 export const today = () => nowIso().slice(0, 10);

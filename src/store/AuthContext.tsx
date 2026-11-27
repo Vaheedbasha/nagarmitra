@@ -60,10 +60,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const data = await api<{ user: SessionUser }>("/api/auth/me");
       setUser(data.user);
-    } catch {
-      setToken(null);
-      setTokenState(null);
-      setUser(null);
+    } catch (err: any) {
+      if (err?.status === 401) {
+        setToken(null);
+        setTokenState(null);
+        setUser(null);
+      }
     } finally {
       setLoading(false);
     }

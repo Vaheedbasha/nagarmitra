@@ -6,7 +6,8 @@ import { authRouter } from "./routes/auth.js";
 import { complaintRouter } from "./routes/complaints.js";
 import { adminRouter } from "./routes/admin.js";
 import { miscRouter } from "./routes/misc.js";
-import { syncCloudDatabase } from "./cloud-storage.js";
+import { checkpointDatabase } from "./db.js";
+import { isCloudConfigured, syncCloudDatabase } from "./cloud-storage.js";
 
 export function createApp() {
   const app = express();
@@ -41,14 +42,22 @@ export function createApp() {
 
   app.use(express.json({ limit: "1mb" }));
 
-  // Cloud persistence middleware: after any mutation succeeds, sync to Neon
+  // Cloud persistence middleware: checkpoint SQLite and await Neon sync before completing response
   app.use((req, res, next) => {
     if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
-      res.on("finish", () => {
-        if (res.statusCode < 400) {
-          void syncCloudDatabase();
+      const originalEnd = res.end.bind(res);
+      res.end = function (...args: any[]) {
+        if (res.statusCode < 400 && isCloudConfigured()) {
+          checkpointDatabase();
+          void syncCloudDatabase()
+            .catch((err) => console.error("[cloud-storage] Sync on response error:", err))
+            .finally(() => {
+              originalEnd(...args);
+            });
+          return res;
         }
-      });
+        return originalEnd(...args);
+      } as any;
     }
     next();
   });
