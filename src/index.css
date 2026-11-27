@@ -97,3 +97,48 @@
   background-image: radial-gradient(#e3e7f0 1px, transparent 1px);
   background-size: 18px 18px;
 }
+
+/* Leaflet marker styling (real map, category glyphs preserved) */
+.leaflet-container {
+  height: 100%;
+  width: 100%;
+  font-family: inherit;
+  background: #e8edf5;
+}
+.nm-marker-wrap,
+.nm-pin-wrap {
+  background: transparent;
+  border: 0;
+}
+.nm-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+  transition: transform 0.15s ease;
+}
+.nm-marker:hover,
+.nm-marker-active {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.25), 0 3px 10px rgba(15, 23, 42, 0.3);
+}
+.nm-pin span {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px 9999px 9999px 2px;
+  transform: rotate(-45deg);
+  background: #4f46e5;
+  border: 3px solid #ffffff;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.35);
+}
+.leaflet-tooltip {
+  border-radius: 8px;
+  border-color: #e2e8f0;
+  font-size: 11px;
+  color: #334155;
+}

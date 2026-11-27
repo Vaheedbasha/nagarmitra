@@ -1,30 +1,35 @@
 import { useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import {
   BarChart3,
-  Bell,
   ChevronsLeft,
   ChevronsRight,
   ClipboardList,
   ExternalLink,
   LayoutDashboard,
+  LogOut,
   Map,
   Menu,
   Settings,
   ShieldCheck,
+  UserCircle,
   X,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { ADMIN_NAME } from "@/lib/constants";
+import { NotificationsBell } from "@/components/admin/NotificationsBell";
+import { useAuth } from "@/store/AuthContext";
+import { useComplaints } from "@/store/ComplaintsContext";
+import { translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/admin", label: "Overview", icon: LayoutDashboard, end: true },
-  { to: "/admin/complaints", label: "All Complaints", icon: ClipboardList, badge: "14" },
-  { to: "/admin/map", label: "Live Map", icon: Map },
-  { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
-  { to: "/admin/verification", label: "Community Verification", icon: ShieldCheck, badge: "5" },
-  { to: "/admin/settings", label: "Settings", icon: Settings },
+  { to: "/admin", key: "overview" as const, icon: LayoutDashboard, end: true },
+  { to: "/admin/complaints", key: "allComplaints" as const, icon: ClipboardList },
+  { to: "/admin/map", key: "liveMap" as const, icon: Map },
+  { to: "/admin/analytics", key: "analytics" as const, icon: BarChart3 },
+  { to: "/admin/verification", key: "verification" as const, icon: ShieldCheck },
+  { to: "/admin/profile", key: "profile" as const, icon: UserCircle },
+  { to: "/admin/settings", key: "settings" as const, icon: Settings },
 ];
 
 const TITLES: { match: string; title: string; subtitle: string }[] = [
@@ -33,17 +38,35 @@ const TITLES: { match: string; title: string; subtitle: string }[] = [
   { match: "/admin/map", title: "Live issue map", subtitle: "City-wide distribution and priority density" },
   { match: "/admin/analytics", title: "Analytics", subtitle: "Performance, hotspots and resolution health" },
   { match: "/admin/verification", title: "Community verification", subtitle: "Validate crowdsourced reports before dispatch" },
-  { match: "/admin/settings", title: "Settings", subtitle: "Workspace, routing rules and notifications" },
-  { match: "/admin", title: "City overview", subtitle: "Riverton · live civic operations summary" },
+  { match: "/admin/profile", title: "My profile", subtitle: "Account, permissions and security" },
+  { match: "/admin/settings", title: "Settings", subtitle: "Workspace, routing rules and access requests" },
+  { match: "/admin", title: "City overview", subtitle: "Live civic operations summary" },
 ];
 
 export function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, isAdmin, logout } = useAuth();
+  const { complaints, language } = useComplaints();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
 
   const crumb =
-    TITLES.filter((item) => location.pathname.startsWith(item.match)).slice(-1)[0] ?? TITLES[TITLES.length - 1];
+    TITLES.filter((item) => location.pathname.startsWith(item.match)).slice(-1)[0] ??
+    TITLES[TITLES.length - 1];
+
+  const initials = (user?.name ?? "Staff")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const signOut = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <div className="min-h-screen bg-canvas">
@@ -72,7 +95,7 @@ export function AdminLayout() {
             <Logo variant="light" to="/admin" size="sm" />
           </div>
           {collapsed ? (
-            <span className="hidden lg:flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+            <span className="hidden h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white lg:flex">
               <Map size={18} />
             </span>
           ) : null}
@@ -89,20 +112,22 @@ export function AdminLayout() {
           <p
             className={cn(
               "mb-2 px-2.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500",
-              collapsed && "lg:text-center lg:px-0"
+              collapsed && "lg:px-0 lg:text-center"
             )}
           >
             {collapsed ? "•••" : "Operations"}
           </p>
           {NAV.map((item) => {
             const Icon = item.icon;
+            const badge =
+              item.to === "/admin/complaints" ? complaints.length : undefined;
             return (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end={item.end}
                 onClick={() => setMobileOpen(false)}
-                title={item.label}
+                title={t(item.key)}
                 className={({ isActive }) =>
                   cn(
                     "group flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-[13px] font-medium transition",
@@ -116,10 +141,8 @@ export function AdminLayout() {
                 {({ isActive }) => (
                   <>
                     <Icon size={17} strokeWidth={isActive ? 2.3 : 2} className="shrink-0" />
-                    <span className={cn("flex-1 truncate", collapsed && "lg:hidden")}>
-                      {item.label}
-                    </span>
-                    {item.badge ? (
+                    <span className={cn("flex-1 truncate", collapsed && "lg:hidden")}>{t(item.key)}</span>
+                    {badge ? (
                       <span
                         className={cn(
                           "rounded-md px-1.5 py-0.5 font-mono text-[10px] font-semibold",
@@ -127,7 +150,7 @@ export function AdminLayout() {
                           isActive ? "bg-white/20 text-white" : "bg-white/5 text-slate-400"
                         )}
                       >
-                        {item.badge}
+                        {badge}
                       </span>
                     ) : null}
                   </>
@@ -137,38 +160,50 @@ export function AdminLayout() {
           })}
 
           <div className={cn("mt-5 rounded-xl border border-white/5 bg-white/[0.03] p-3", collapsed && "lg:hidden")}>
-            <p className="text-[11px] font-semibold text-white">Prototype mode</p>
+            <p className="flex items-center gap-1 text-[11px] font-semibold text-white">
+              <ShieldCheck size={12} className="text-accent-400" /> Live database
+            </p>
             <p className="mt-1 text-[10.5px] leading-relaxed text-slate-400">
-              Status changes, search and filters are simulated locally in this demo.
+              Status changes, verification decisions and escalations persist on the server.
+              Reporter identity stays hidden.
             </p>
           </div>
         </nav>
 
         <div className="border-t border-white/5 p-3">
-          <div
+          <Link
+            to="/admin/profile"
             className={cn(
-              "flex items-center gap-2.5 rounded-xl px-1.5 py-1.5",
+              "flex items-center gap-2.5 rounded-xl px-1.5 py-1.5 transition hover:bg-white/5",
               collapsed && "lg:justify-center lg:px-0"
             )}
           >
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500/20 text-[11px] font-bold text-brand-200 ring-1 ring-inset ring-white/10">
-              MS
+              {initials}
             </span>
             <div className={cn("min-w-0 flex-1", collapsed && "lg:hidden")}>
-              <p className="truncate text-[12px] font-semibold text-white">{ADMIN_NAME}</p>
-              <p className="truncate text-[10px] text-slate-500">City operations lead</p>
+              <p className="truncate text-[12px] font-semibold text-white">{user?.name ?? "Staff"}</p>
+              <p className="truncate text-[10px] text-slate-500">
+                {isAdmin ? "Administrator" : user?.designation ?? "Municipal official"}
+              </p>
             </div>
-            <button
-              className={cn(
-                "rounded-md p-1.5 text-slate-500 transition hover:bg-white/5 hover:text-white",
-                collapsed && "lg:hidden"
-              )}
-              aria-label="Account options"
-              title="Demo account"
+          </Link>
+
+          <div className={cn("mt-1 flex items-center gap-1", collapsed && "lg:hidden")}>
+            <Link
+              to="/admin/profile"
+              className="flex flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10.5px] font-medium text-slate-400 transition hover:bg-white/5 hover:text-white"
             >
-              <Settings size={15} />
+              <Settings size={12} /> Account
+            </Link>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[10.5px] font-medium text-slate-400 transition hover:bg-white/5 hover:text-red-300"
+            >
+              <LogOut size={12} /> Sign out
             </button>
           </div>
+
           <button
             onClick={() => setCollapsed((value) => !value)}
             className="mt-2 hidden w-full items-center gap-2 rounded-lg px-2.5 py-2 text-[11px] font-medium text-slate-500 transition hover:bg-white/5 hover:text-slate-300 lg:flex"
@@ -204,27 +239,26 @@ export function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 md:inline-flex">
-                Demo data
-              </span>
-              <button
-                className="relative rounded-lg border border-line bg-white p-2 text-slate-500 transition hover:text-slate-800"
-                aria-label="Notifications"
-                title="3 new notifications (demo)"
-              >
-                <Bell size={16} />
-                <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-red-500 ring-2 ring-white" />
-              </button>
+              {complaints.some((complaint) => complaint.isDemo) ? (
+                <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 md:inline-flex">
+                  Seeded demo data
+                </span>
+              ) : null}
+              <NotificationsBell />
               <Link
                 to="/"
                 className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 py-2 text-[11px] font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
               >
                 <ExternalLink size={13} />
-                <span className="hidden sm:inline">Citizen app</span>
+                <span className="hidden sm:inline">{t("citizenApp")}</span>
               </Link>
-              <span className="ml-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-700 ring-1 ring-inset ring-brand-100">
-                MS
-              </span>
+              <Link
+                to="/admin/profile"
+                className="ml-0.5 flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-[10px] font-bold text-brand-700 ring-1 ring-inset ring-brand-100"
+                aria-label="Open profile"
+              >
+                {initials}
+              </Link>
             </div>
           </div>
         </header>

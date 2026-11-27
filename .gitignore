@@ -29,3 +29,11 @@ dist-ssr/
 *.sln
 *.sw?
 Thumbs.db
+server/data/
+server/uploads/
+server/api.log
+server/dist/
+*.zip
+
+# Runtime pid files
+*.pid

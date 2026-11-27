@@ -7,28 +7,15 @@ import { EmptyState } from "@/components/ui/Avatar";
 import { useComplaints } from "@/store/ComplaintsContext";
 import type { StatusId } from "@/types";
 
-const MY_REPORT_IDS = [
-  "CF-2026-0150",
-  "CF-2026-0148",
-  "CF-2026-0146",
-  "CF-2026-0142",
-  "CF-2026-0143",
-  "CF-2026-0136",
-  "CF-2026-0127",
-];
-
 type Tab = StatusId | "all";
 
 export default function MyReports() {
-  const { complaints } = useComplaints();
+  const { myComplaints, loading } = useComplaints();
   const [tab, setTab] = useState<Tab>("all");
 
   const mine = useMemo(
-    () =>
-      complaints
-        .filter((complaint) => MY_REPORT_IDS.includes(complaint.id))
-        .sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [complaints]
+    () => [...myComplaints].sort((a, b) => (a.date < b.date ? 1 : -1)),
+    [myComplaints]
   );
 
   const filtered = tab === "all" ? mine : mine.filter((complaint) => complaint.status === tab);
@@ -117,7 +104,11 @@ export default function MyReports() {
         <EmptyState
           icon={Search}
           title={`No ${tab === "all" ? "" : tab} reports`}
-          description="Nothing here yet. Reports you submit will appear in this list with live status updates."
+          description={
+            loading
+              ? "Loading your reports…"
+              : "Nothing here yet. Reports you submit will appear in this list with live status updates."
+          }
           action={
             <Link
               to="/report/manual"

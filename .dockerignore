@@ -1,0 +1,14 @@
+node_modules
+dist
+server/dist
+server/data
+server/uploads
+server/api.log
+.git
+.freebuff
+.env
+.env.*
+!.env.example
+*.zip
+*.log
+nagarmitra-*.zip

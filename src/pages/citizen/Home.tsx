@@ -17,6 +17,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
 import { CATEGORIES, TOP_CATEGORY_IDS, categoryMeta, statusMeta } from "@/lib/constants";
 import { TRANSLATIONS, CATEGORY_LABELS } from "@/lib/translations";
 import { StatusChip } from "@/components/ui/Badge";
@@ -26,6 +27,14 @@ import { cn, timeAgo } from "@/lib/utils";
 export default function Home() {
   const { complaints, selectedCity, language } = useComplaints();
   const t = TRANSLATIONS[language];
+  const { user } = useAuth();
+  const firstName = (user?.name ?? "Citizen").split(" ")[0];
+  const greeting =
+    language === "hi"
+      ? `नमस्ते, ${firstName}।`
+      : language === "te"
+        ? `నమస్కారం, ${firstName}.`
+        : `Good morning, ${firstName}.`;
   const [isCategoriesExpanded, setIsCategoriesExpanded] = useState(false);
 
   const nearYou = complaints.filter((c) => c.status !== "resolved").slice(0, 3);
@@ -51,7 +60,7 @@ export default function Home() {
               {selectedCity} · Ward 4
             </span>
             <h1 className="mt-4 font-display text-[26px] font-extrabold leading-[1.15] tracking-tight sm:text-[34px]">
-              {t.heroTitle}
+              {greeting}
               <br />
               <span className="text-brand-200">{t.heroSubtitle}</span>
             </h1>

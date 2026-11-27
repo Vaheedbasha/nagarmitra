@@ -1,53 +1,71 @@
-import { NavLink, Outlet, Link, useLocation } from "react-router-dom";
+import { NavLink, Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Compass,
   ClipboardList,
   User,
   LayoutDashboard,
-  Plus,
   MapPin,
   MessageSquarePlus,
   Languages,
+  LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { useComplaints } from "@/store/ComplaintsContext";
+import { useComplaints, CITIES } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
+import { translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Home", icon: Home, end: true },
-  { to: "/explore", label: "Explore", icon: Compass },
-  { to: "/report/chat", label: "Report", icon: MessageSquarePlus, highlight: true },
-  { to: "/reports", label: "My Reports", icon: ClipboardList },
-  { to: "/profile", label: "Profile", icon: User },
+  { to: "/", key: "home" as const, icon: Home, end: true },
+  { to: "/explore", key: "explore" as const, icon: Compass },
+  { to: "/report/chat", key: "report" as const, icon: MessageSquarePlus, highlight: true },
+  { to: "/reports", key: "myReports" as const, icon: ClipboardList },
+  { to: "/profile", key: "profile" as const, icon: User },
 ];
 
 export function CitizenLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { selectedCity, setSelectedCity, language, setLanguage } = useComplaints();
+  const { user, isStaff, logout } = useAuth();
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const isChatRoute = location.pathname === "/report" || location.pathname.startsWith("/report/");
 
+  const initials = (user?.name ?? "Citizen")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const signOut = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
-    <div className="flex min-h-screen w-full flex-col bg-canvas overflow-x-hidden">
+    <div className="flex min-h-screen w-full flex-col overflow-x-hidden bg-canvas">
       <header className="sticky top-0 z-40 border-b border-line/80 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2.5 sm:gap-6 min-w-0">
+          <div className="flex min-w-0 items-center gap-2.5 sm:gap-6">
             <Logo />
 
-            {/* City Selector Pill */}
-            <div className="relative flex items-center shrink-0">
-              <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 flex items-center text-brand-600">
+            <div className="relative flex shrink-0 items-center">
+              <span className="pointer-events-none absolute left-2 top-1/2 flex -translate-y-1/2 items-center text-brand-600">
                 <MapPin size={12} />
               </span>
               <select
                 value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="h-8 leading-none rounded-xl border border-line bg-white/95 pl-6 pr-2 text-[11px] font-bold text-slate-700 outline-none transition hover:border-brand-300 focus:border-brand-500 shadow-sm cursor-pointer"
-                aria-label="Select City"
+                onChange={(event) => setSelectedCity(event.target.value)}
+                className="h-8 cursor-pointer rounded-xl border border-line bg-white/95 pl-6 pr-2 py-0 text-[11px] font-bold text-slate-700 shadow-sm outline-none transition hover:border-brand-300 focus:border-brand-500"
+                aria-label={t("city")}
               >
-                <option value="Riverton">Riverton</option>
-                <option value="Metro Heights">Metro Heights</option>
-                <option value="Bay City">Bay City</option>
+                {CITIES.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -66,22 +84,20 @@ export function CitizenLayout() {
                     )
                   }
                 >
-                  {item.label}
+                  {t(item.key)}
                 </NavLink>
               ))}
             </nav>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Icon-Only Vernacular Language Selector */}
             <div className="relative flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-white text-slate-700 shadow-sm transition hover:border-brand-400 hover:text-brand-600 focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-100">
               <Languages size={15} />
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value as "en" | "hi" | "te")}
+                onChange={(event) => setLanguage(event.target.value as "en" | "hi" | "te")}
                 className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-                aria-label="Select Language"
-                title={`Language: ${language === "hi" ? "हिंदी" : language === "te" ? "తెలుగు" : "English"}`}
+                aria-label={t("language")}
               >
                 <option value="en">English (EN)</option>
                 <option value="hi">हिंदी (Hindi)</option>
@@ -89,31 +105,55 @@ export function CitizenLayout() {
               </select>
             </div>
 
-            <Link
-              to="/admin"
-              className="focus-ring hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-              title="Open the admin demo"
-            >
-              <LayoutDashboard size={14} />
-              <span>Admin demo</span>
-            </Link>
-            <Link
-              to="/profile"
-              className="focus-ring ml-0.5 hidden h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-xs font-bold text-brand-700 ring-1 ring-inset ring-brand-100 sm:flex"
-              aria-label="Your profile"
-            >
-              AR
-            </Link>
+            {isStaff ? (
+              <Link
+                to="/admin"
+                className="focus-ring hidden items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex"
+                title={t("adminConsole")}
+              >
+                <LayoutDashboard size={14} />
+                <span>{t("adminConsole")}</span>
+              </Link>
+            ) : null}
+
+            {user ? (
+              <>
+                <Link
+                  to="/profile"
+                  className="focus-ring flex h-9 w-9 items-center justify-center rounded-full bg-brand-50 text-[11px] font-bold text-brand-700 ring-1 ring-inset ring-brand-100"
+                  aria-label={t("profile")}
+                  title={user?.name ?? t("profile")}
+                >
+                  {initials}
+                </Link>
+
+                <button
+                  onClick={signOut}
+                  className="focus-ring rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-red-600"
+                  aria-label={t("logout")}
+                  title={t("logout")}
+                >
+                  <LogOut size={16} />
+                </button>
+              </>
+            ) : (
+              <Link
+                to="/login"
+                className="focus-ring inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
+              >
+                Sign in
+              </Link>
+            )}
           </div>
         </div>
       </header>
 
       <main
         className={cn(
-          "flex-1 w-full max-w-full overflow-x-hidden",
+          "w-full max-w-full flex-1 overflow-x-hidden",
           isChatRoute
-            ? "flex flex-col min-h-0 p-0 pb-20 md:pb-0"
-            : "mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-8 md:pb-14"
+            ? "flex min-h-0 flex-col p-0 pb-20 md:pb-0"
+            : "mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 md:pb-14 lg:px-8"
         )}
       >
         <Outlet />
@@ -121,13 +161,12 @@ export function CitizenLayout() {
 
       {!isChatRoute && (
         <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 md:block">
-          NagarMitra prototype · Phase 1 · All data and AI summaries on this screen are simulated.
+          NagarMitra · civic intelligence · demo records are labelled in the interface
         </footer>
       )}
 
-      {/* Persistent Bottom Navigation across all citizen views */}
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 md:hidden shadow-lg"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 shadow-lg md:hidden"
         aria-label="Mobile navigation"
       >
         <div className="mx-auto flex max-w-md items-center justify-around px-2">
@@ -136,20 +175,16 @@ export function CitizenLayout() {
               item.to === "/"
                 ? location.pathname === "/"
                 : item.to === "/report/chat"
-                ? isChatRoute
-                : location.pathname.startsWith(item.to);
+                  ? isChatRoute
+                  : location.pathname.startsWith(item.to);
             const Icon = item.icon;
             if (item.highlight) {
               return (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  className="relative -top-3 flex flex-col items-center justify-center focus:outline-none"
-                >
+                <NavLink key={item.to} to={item.to} className="relative -top-3 flex flex-col items-center justify-center focus:outline-none">
                   <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lift ring-4 ring-white transition active:scale-95">
                     <Icon size={22} strokeWidth={2.4} />
                   </span>
-                  <span className="mt-0.5 text-[9.5px] font-bold text-brand-700">Report</span>
+                  <span className="mt-0.5 text-[9.5px] font-bold text-brand-700">{t(item.key)}</span>
                 </NavLink>
               );
             }
@@ -163,15 +198,10 @@ export function CitizenLayout() {
                   active ? "text-brand-600" : "text-slate-400"
                 )}
               >
-                <span
-                  className={cn(
-                    "rounded-lg px-2.5 py-1 transition",
-                    active && "bg-brand-50"
-                  )}
-                >
+                <span className={cn("rounded-lg px-2.5 py-1 transition", active && "bg-brand-50")}>
                   <Icon size={18} strokeWidth={active ? 2.4 : 2} />
                 </span>
-                {item.label}
+                {t(item.key)}
               </NavLink>
             );
           })}

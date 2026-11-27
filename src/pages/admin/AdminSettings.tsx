@@ -10,6 +10,7 @@ import {
   Users,
 } from "lucide-react";
 import { Panel } from "@/components/admin/Panel";
+import { OfficialRequests } from "@/components/admin/OfficialRequests";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { Tag } from "@/components/ui/Badge";
@@ -77,6 +78,7 @@ export default function AdminSettings() {
 
   return (
     <div className="space-y-4">
+      <OfficialRequests />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h2 className="text-lg font-extrabold sm:text-xl">Workspace settings</h2>

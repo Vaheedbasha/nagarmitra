@@ -1,763 +1,471 @@
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Camera,
-  Check,
   CheckCircle2,
   ChevronRight,
-  ExternalLink,
-  HelpCircle,
-  Image,
+  ImagePlus,
   Info,
+  Loader2,
   MapPin,
   Mic,
-  MicOff,
-  Paperclip,
-  Plus,
   Send,
-  ShieldCheck,
   Sparkles,
-  ThumbsUp,
   Trash2,
-  Video,
-  Volume2,
-  VolumeX,
   X,
 } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { CityMap } from "@/components/map/CityMap";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
+import { api, uploadMedia } from "@/lib/api";
 import { CATEGORIES, categoryMeta } from "@/lib/constants";
-import { TRANSLATIONS, CATEGORY_LABELS } from "@/lib/translations";
-import { buildTimeline, priorityFromScore, scoreFromFactors } from "@/data/complaints";
-import { mockId } from "@/lib/utils";
-import type { CategoryId, Complaint, PriorityFactors } from "@/types";
+import { translate } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import type { CategoryId, Complaint } from "@/types";
 
 interface Message {
   id: string;
   sender: "bot" | "user";
-  text?: string;
+  text: string;
   time: string;
-  type?: "text" | "ai_confirmation" | "contact_form" | "success";
-  media?: {
-    type: "photo" | "video" | "audio";
-    url: string;
-    label?: string;
-  };
+}
+
+type Severity = "low" | "medium" | "high" | "critical";
+
+const SEVERITIES: Severity[] = ["low", "medium", "high", "critical"];
+
+const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
+  Riverton: { lat: 17.4, lng: 78.47 },
+  "Metro Heights": { lat: 17.47, lng: 78.38 },
+  "Bay City": { lat: 17.34, lng: 78.56 },
+};
+
+const RULES: { category: CategoryId; words: string[] }[] = [
+  { category: "roads", words: ["pothole", "road", "street", "गड्ढा", "सड़क", "గుంత"] },
+  { category: "waste", words: ["garbage", "waste", "trash", "कचरा", "చెత్త"] },
+  { category: "water", words: ["water", "pipe", "leak", "पानी", "నీరు"] },
+  { category: "drainage", words: ["drain", "sewage", "flood", "नाला", "मुरుగు"] },
+  { category: "electricity", words: ["light", "power", "electric", "बिजली", "విద్యుత్"] },
+  { category: "safety", words: ["danger", "unsafe", "accident", "खतरा", "ప్రమాదం"] },
+];
+
+function nowLabel() {
+  return new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 export default function ChatReport() {
   const navigate = useNavigate();
-  const { addComplaint, selectedCity, language } = useComplaints();
+  const { language, selectedCity, createComplaint } = useComplaints();
   const { toast } = useToast();
-  const t = TRANSLATIONS[language];
-
-  const [step, setStep] = useState<"input" | "analyzing" | "confirm" | "contact" | "done">("input");
-  const [inputText, setInputText] = useState("");
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingSeconds, setRecordingSeconds] = useState(0);
-  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
-  // Evidence state
-  const [attachedPhoto, setAttachedPhoto] = useState<string | null>(null);
-  const [attachedVideo, setAttachedVideo] = useState<string | null>(null);
-  const [attachedAudio, setAttachedAudio] = useState<string | null>(null);
-
-  // AI draft states
-  const [aiTitle, setAiTitle] = useState("Severe road crater and exposed cabling");
-  const [aiSummary, setAiSummary] = useState(
-    "Large road damage and pothole cluster observed near pedestrian lane, creating accident risk for morning commuters."
-  );
-  const [aiCategory, setAiCategory] = useState<CategoryId>("roads");
-  const [aiLocation, setAiLocation] = useState("Market Cross Road, Ward 2");
-
-  // Mandatory reporter details
-  const [reporterName, setReporterName] = useState("Ananya Rao");
-  const [reporterPhone, setReporterPhone] = useState("+91 9845 220191");
-  const [reporterEmail, setReporterEmail] = useState("ananya.rao@example.com");
-
-  const [createdReport, setCreatedReport] = useState<Complaint | null>(null);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
 
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: "msg-1",
+      id: "welcome",
       sender: "bot",
-      text: t.aiGreeting.replace("{city}", selectedCity),
-      time: "Just now",
-      type: "text",
+      text: `${t("report")}: describe the civic issue in your own words. I will turn it into a structured complaint you can review before submitting.`,
+      time: nowLabel(),
     },
   ]);
+  const [input, setInput] = useState("");
+  const [thinking, setThinking] = useState(false);
+  const [draft, setDraft] = useState<{
+    title: string;
+    description: string;
+    category: CategoryId;
+    severity: Severity;
+    source: "ai" | "rule-based";
+  } | null>(null);
+  const [address, setAddress] = useState("");
+  const [lat, setLat] = useState(CITY_CENTERS[selectedCity]?.lat ?? 17.4);
+  const [lng, setLng] = useState(CITY_CENTERS[selectedCity]?.lng ?? 78.47);
+  const [photo, setPhoto] = useState<{ id: string; url: string; name: string } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [created, setCreated] = useState<Complaint | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const recognition = useRef<any>(null);
+  const [listening, setListening] = useState(false);
 
   useEffect(() => {
-    if (messages.length === 1 && messages[0].sender === "bot") {
-      setMessages([
-        {
-          id: "msg-1",
-          sender: "bot",
-          text: t.aiGreeting.replace("{city}", selectedCity),
-          time: "Just now",
-          type: "text",
-        },
-      ]);
-    }
-  }, [language, selectedCity]);
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, thinking, draft]);
 
-  const handlePlayAudioSummary = () => {
-    if (isPlayingAudio) {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-      setIsPlayingAudio(false);
+  const pushMessage = (message: Omit<Message, "id" | "time">) =>
+    setMessages((current) => [
+      ...current,
+      { ...message, id: `${Date.now()}-${Math.random()}`, time: nowLabel() },
+    ]);
+
+  const analyze = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    const text = input.trim();
+    if (text.length < 10) {
+      toast({ title: "Add a little more detail (10+ characters)", variant: "error" });
       return;
     }
+    pushMessage({ sender: "user", text });
+    setInput("");
+    setThinking(true);
+    try {
+      const response = await api<{
+        configured: boolean;
+        result: { title: string; summary: string; category: string; severity: string; clarifyingQuestions: string[] };
+      }>("/api/ai/triage", { method: "POST", body: { text, language, city: selectedCity } });
 
-    setIsPlayingAudio(true);
-    let speechText = `You reported: ${aiSummary}. Proposed category: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}. Location: ${aiLocation}. Tap confirm to submit.`;
-    if (language === "hi") {
-      speechText = `आपकी शिकायत है: ${aiSummary}। श्रेणी: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}। स्थान: ${aiLocation}। सबमिट करने के लिए हरा बटन दबाएं।`;
-    } else if (language === "te") {
-      speechText = `మీ ఫిర్యాదు: ${aiSummary}। వర్గం: ${CATEGORY_LABELS[language][aiCategory] || aiCategory}। ప్రాంతం: ${aiLocation}। సమర్పించడానికి నిర్ధారించండి.`;
+      setDraft({
+        title: response.result.title,
+        description: response.result.summary || text,
+        category: (response.result.category as CategoryId) ?? "other",
+        severity: ["low", "medium", "high", "critical"].includes(response.result.severity)
+          ? (response.result.severity as Severity)
+          : "medium",
+        source: "ai",
+      });
+      pushMessage({
+        sender: "bot",
+        text: response.result.clarifyingQuestions[0]
+          ? `${response.result.clarifyingQuestions[0]} You can edit the draft on the right, then submit.`
+          : "I structured your report below. Check the category, severity and location, then submit.",
+      });
+    } catch (caught) {
+      const lower = text.toLowerCase();
+      const match = RULES.find((entry) => entry.words.some((word) => lower.includes(word)));
+      setDraft({
+        title: text.split(/[.!?]/)[0].slice(0, 80),
+        description: text,
+        category: match?.category ?? "other",
+        severity: /(danger|accident|child|electric|fire|खतरा|ప్రమాదం)/i.test(text) ? "high" : "medium",
+        source: "rule-based",
+      });
+      pushMessage({
+        sender: "bot",
+        text:
+          caught instanceof Error && caught.message.includes("not configured")
+            ? "AI is not configured on this server, so I used a transparent rule-based draft. Review it below."
+            : "The AI service is unavailable right now, so I used a rule-based draft. Review it below.",
+      });
+    } finally {
+      setThinking(false);
     }
+  };
 
-    if ("speechSynthesis" in window) {
-      try {
-        const utterance = new SpeechSynthesisUtterance(speechText);
-        utterance.lang = language === "hi" ? "hi-IN" : language === "te" ? "te-IN" : "en-US";
-        utterance.rate = 0.95;
-        utterance.onend = () => setIsPlayingAudio(false);
-        utterance.onerror = () => setIsPlayingAudio(false);
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(utterance);
-      } catch {
-        setTimeout(() => setIsPlayingAudio(false), 4000);
+  const toggleMic = () => {
+    if (listening) {
+      recognition.current?.stop();
+      setListening(false);
+      return;
+    }
+    const Ctor =
+      (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null;
+    if (!Ctor) {
+      toast({ title: "Speech input is not supported in this browser", variant: "error" });
+      return;
+    }
+    const instance = new Ctor();
+    instance.lang = language === "hi" ? "hi-IN" : language === "te" ? "te-IN" : "en-IN";
+    instance.interimResults = true;
+    instance.continuous = false;
+    instance.onresult = (event: any) => {
+      let text = "";
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        text += event.results[i][0].transcript;
       }
-    } else {
-      setTimeout(() => setIsPlayingAudio(false), 4000);
+      setInput((current) => `${current}${current ? " " : ""}${text}`.trim());
+    };
+    instance.onend = () => setListening(false);
+    instance.onerror = () => setListening(false);
+    recognition.current = instance;
+    instance.start();
+    setListening(true);
+  };
+
+  const attach = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    setUploading(true);
+    try {
+      const result = await uploadMedia(file);
+      setPhoto({ id: result.id, url: result.url, name: file.name });
+      toast({ title: "Evidence attached", description: file.name, variant: "success" });
+    } catch (caught) {
+      toast({
+        title: "Upload failed",
+        description: caught instanceof Error ? caught.message : "Try a smaller file.",
+        variant: "error",
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
-  useEffect(() => {
-    return () => {
-      if ("speechSynthesis" in window) window.speechSynthesis.cancel();
-    };
-  }, []);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, step]);
-
-  // Voice recording simulation timer
-  useEffect(() => {
-    let timer: any;
-    if (isRecording) {
-      timer = setInterval(() => {
-        setRecordingSeconds((prev) => {
-          if (prev >= 60) {
-            stopRecording();
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    } else {
-      setRecordingSeconds(0);
+  const submit = async () => {
+    if (!draft) return;
+    if (address.trim().length < 4) {
+      toast({ title: "Add the area or street", variant: "error" });
+      return;
     }
-    return () => clearInterval(timer);
-  }, [isRecording]);
-
-  const startRecording = () => {
-    setIsRecording(true);
-    setPlusMenuOpen(false);
-  };
-
-  const stopRecording = () => {
-    setIsRecording(false);
-    const simulatedTranscript =
-      "There is a deep cave-in and pothole on Market Cross Road with water accumulation. It has been like this for three days and is very hazardous for bikes.";
-    setInputText(simulatedTranscript);
-    setAttachedAudio("sample_voice_clip.mp3");
-    toast({
-      title: "Audio recorded & transcribed",
-      description: "Speech converted to text. You can review or tap send.",
-      variant: "success",
-    });
-  };
-
-  const handleSendMessage = () => {
-    if (!inputText.trim() && !attachedPhoto && !attachedVideo && !attachedAudio) return;
-
-    if (inputText.trim()) {
-      const summary = inputText.trim();
-      const firstSentence = summary.split(/[.?!]/)[0].trim();
-      const title = firstSentence.length > 55 ? firstSentence.slice(0, 52) + "..." : firstSentence;
-      setAiTitle(title || "Civic issue reported");
-      setAiSummary(summary);
+    setSubmitting(true);
+    try {
+      const complaint = await createComplaint({
+        title: draft.title,
+        description: draft.description,
+        category: draft.category,
+        severity: draft.severity,
+        location: address.trim(),
+        city: selectedCity,
+        lat,
+        lng,
+        mediaIds: photo ? [photo.id] : [],
+        aiSummary: draft.description,
+        aiSource: draft.source === "ai" ? "ai" : "rule-based",
+      });
+      setCreated(complaint);
+      pushMessage({ sender: "bot", text: `Complaint ${complaint.id} has been submitted and queued for review.` });
+    } catch (caught) {
+      toast({
+        title: "Submission failed",
+        description: caught instanceof Error ? caught.message : "Please try again.",
+        variant: "error",
+      });
+    } finally {
+      setSubmitting(false);
     }
-
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      sender: "user",
-      text: inputText.trim() || undefined,
-      time: "Now",
-      media: attachedPhoto
-        ? { type: "photo", url: attachedPhoto, label: "Photo evidence" }
-        : attachedVideo
-        ? { type: "video", url: attachedVideo, label: "Video clip (42s)" }
-        : attachedAudio
-        ? { type: "audio", url: attachedAudio, label: "Voice note" }
-        : undefined,
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    setInputText("");
-    setStep("analyzing");
-
-    // Simulate AI classification & summary generation
-    setTimeout(() => {
-      setStep("confirm");
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `bot-${Date.now()}`,
-          sender: "bot",
-          text: "I've analyzed your report. Please review the AI summary and proposed category before we collect your contact verification.",
-          time: "Now",
-          type: "ai_confirmation",
-        },
-      ]);
-    }, 1200);
   };
 
-  const handleConfirmAi = () => {
-    setStep("contact");
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `bot-contact-${Date.now()}`,
-        sender: "bot",
-        text: "Summary confirmed! Please confirm your mandatory contact details. By privacy policy, only NagarMitra Platform Admins can see your personal info; it is never shared in public posts or authority exports.",
-        time: "Now",
-        type: "contact_form",
-      },
-    ]);
-  };
-
-  const handleSubmitFinalReport = () => {
-    const reportId = mockId();
-    const factors: PriorityFactors = { severity: 85, impact: 80, recurrence: 60, urgency: 88 };
-    const score = scoreFromFactors(factors);
-
-    const newComplaint: Complaint = {
-      id: reportId,
-      title: aiTitle,
-      description: messages.find((m) => m.sender === "user")?.text ?? aiTitle,
-      aiSummary: aiSummary,
-      category: aiCategory,
-      status: "submitted",
-      priority: priorityFromScore(score),
-      score,
-      factors,
-      city: selectedCity,
-      location: `${aiLocation}, ${selectedCity}`,
-      area: aiLocation.split(",")[0],
-      date: new Date().toISOString().split("T")[0],
-      updated: new Date().toISOString().split("T")[0],
-      photo: attachedPhoto ?? "/evidence/pothole.jpg",
-      video: attachedVideo ?? undefined,
-      audio: attachedAudio ?? undefined,
-      reporter: {
-        name: reporterName,
-        anonymous: false,
-        phone: reporterPhone,
-        email: reporterEmail,
-        reports: 5,
-        trust: 92,
-      },
-      coordinates: { x: 45, y: 55 },
-      upvotes: 1,
-      why: [
-        "AI multi-factor signal analysis",
-        "Confirmed by resident during reporting",
-      ],
-      timeline: buildTimeline(new Date().toISOString().split("T")[0], "submitted"),
-      comments: [
-        {
-          id: `comm-${Date.now()}`,
-          author: reporterName,
-          date: new Date().toISOString().split("T")[0],
-          text: "Report filed via NagarMitra AI Assistant.",
-          badge: "Reporter",
-        },
-      ],
-    };
-
-    addComplaint(newComplaint);
-    setCreatedReport(newComplaint);
-    setAttachedPhoto(null);
-    setAttachedVideo(null);
-    setAttachedAudio(null);
-    setInputText("");
-    setStep("done");
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `bot-success-${Date.now()}`,
-        sender: "bot",
-        text: `Your civic report ${reportId} has been created and published to the public feed! You can now track its timeline or share it with neighbors.`,
-        time: "Now",
-        type: "success",
-      },
-    ]);
-  };
+  if (created) {
+    return (
+      <div className="mx-auto mt-6 max-w-lg">
+        <div className="surface p-6 text-center">
+          <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-accent-500 text-white">
+            <CheckCircle2 size={30} />
+          </span>
+          <h1 className="mt-4 text-xl font-extrabold">Complaint submitted</h1>
+          <p className="mt-1 text-[12px] text-slate-500">Saved to the NagarMitra database.</p>
+          <p className="mt-3 font-mono text-lg font-bold text-slate-900">{created.id}</p>
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+            <Button className="flex-1" onClick={() => navigate(`/reports/${created.id}`)}>
+              View complaint <ChevronRight size={15} />
+            </Button>
+            <Button variant="outline" className="flex-1" onClick={() => navigate("/reports")}>
+              My reports
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-64px)] w-full max-w-2xl mx-auto bg-white sm:border-x sm:border-line sm:shadow-sm overflow-hidden">
-      {/* Chat Header */}
-      <div className="flex items-center justify-between border-b border-line bg-white/95 px-3.5 py-2.5 sm:px-4 sm:py-3 shrink-0">
-        <div className="flex items-center gap-2.5 sm:gap-3">
-          <Link
-            to="/"
-            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 transition"
-            aria-label="Back to home"
-          >
-            <ArrowLeft size={19} />
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm">
-              <Sparkles size={16} />
-              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-white" />
-            </span>
-            <div>
-              <h1 className="text-xs sm:text-sm font-bold text-slate-900 leading-tight">
-                NagarMitra AI Assistant
-              </h1>
-              <p className="text-[9.5px] sm:text-[10px] text-slate-400">
-                Civic Triage · {selectedCity} · {language === "hi" ? "हिंदी" : language === "te" ? "తెలుగు" : "English"}
-              </p>
-            </div>
-          </div>
-        </div>
+    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
+      <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
+        <ArrowLeft size={14} /> Back to home
+      </Link>
 
-        <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
-          <span className="h-2 w-2 rounded-full bg-emerald-500" />
-          Online
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-extrabold">
+            <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600"><Sparkles size={16} /></span>
+            AI reporting assistant
+          </h1>
+          <p className="mt-1 text-[12px] text-slate-500">
+            {selectedCity} · describe the issue and review the structured draft
+          </p>
         </div>
+        <Link to="/report/manual" className="text-[11.5px] font-semibold text-brand-600">
+          Use the form instead
+        </Link>
       </div>
 
-      {/* Message Stream */}
-      <div className="flex-1 space-y-3.5 overflow-y-auto p-3.5 sm:p-5">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex flex-col ${msg.sender === "user" ? "items-end" : "items-start"}`}
-          >
-            <div
-              className={`max-w-[90%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
-                msg.sender === "user"
-                  ? "bg-brand-600 text-white shadow-sm rounded-br-none"
-                  : "bg-slate-50 text-slate-800 border border-line rounded-bl-none"
-              }`}
-            >
-              {msg.text && <p className="whitespace-pre-line">{msg.text}</p>}
-
-              {/* Media preview */}
-              {msg.media && (
-                <div className="mt-2 overflow-hidden rounded-xl border border-white/20 bg-black/10">
-                  {msg.media.type === "photo" && (
-                    <img src={msg.media.url} alt="" className="h-36 w-full object-cover" />
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="surface flex min-h-[440px] flex-col overflow-hidden">
+          <div className="flex-1 space-y-3 overflow-y-auto p-4">
+            {messages.map((message) => (
+              <div key={message.id} className={cn("flex", message.sender === "user" ? "justify-end" : "justify-start")}>
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-3.5 py-2.5 text-[12px] leading-relaxed",
+                    message.sender === "user"
+                      ? "rounded-br-md bg-brand-600 text-white"
+                      : "rounded-bl-md border border-line bg-slate-50 text-slate-700"
                   )}
-                  {msg.media.type === "video" && (
-                    <div className="flex h-28 w-full items-center justify-center bg-slate-900 text-white p-3 text-center">
-                      <div>
-                        <Video size={24} className="mx-auto mb-1 text-brand-300" />
-                        <span className="text-[10px] font-medium">Video attached (max 1 min)</span>
-                        <p className="text-[8.5px] text-slate-400">Viewed by staff · Not analyzed by AI</p>
-                      </div>
-                    </div>
-                  )}
-                  {msg.media.type === "audio" && (
-                    <div className="flex items-center gap-2 bg-brand-700/60 p-2.5 text-white">
-                      <Mic size={14} />
-                      <span className="text-[11px] font-semibold">Audio Note Recorded</span>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* AI Confirmation Card */}
-            {msg.type === "ai_confirmation" && step === "confirm" && (
-              <div className="mt-2 w-full max-w-md rounded-2xl border border-brand-200 bg-brand-50/70 p-4 shadow-sm animate-fade-up">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-brand-700">
-                    <Sparkles size={13} /> AI Summary & Classification
-                  </div>
-
-                  {/* Audio Readback Button for Both Educated and Uneducated Citizens */}
-                  <button
-                    type="button"
-                    onClick={handlePlayAudioSummary}
-                    className={`inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11px] font-bold shadow-sm transition ${
-                      isPlayingAudio
-                        ? "bg-emerald-600 text-white animate-pulse"
-                        : "bg-white border border-brand-300 text-brand-700 hover:bg-brand-50"
-                    }`}
-                    title={isPlayingAudio ? t.stopAudio : t.listenAloud}
-                  >
-                    {isPlayingAudio ? (
-                      <>
-                        <VolumeX size={13} /> {t.stopAudio}
-                      </>
-                    ) : (
-                      <>
-                        <Volume2 size={13} className="text-brand-600" /> {t.listenAloud}
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {isPlayingAudio && (
-                  <div className="mt-2 flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 p-2 text-[11px] text-emerald-800 animate-pulse">
-                    <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-                    <span>{t.speaking}</span>
-                  </div>
-                )}
-
-                <div className="mt-2.5 space-y-2 text-xs">
-                  <div>
-                    <label className="text-[10px] font-semibold text-slate-500">
-                      {language === "hi" ? "शिकायत का सारांश:" : language === "te" ? "ఫిర్యాదు సారాంశం:" : "Proposed Summary:"}
-                    </label>
-                    <textarea
-                      value={aiSummary}
-                      onChange={(e) => setAiSummary(e.target.value)}
-                      rows={2}
-                      className="field mt-0.5 text-xs bg-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500">
-                        {language === "hi" ? "श्रेणी (Category):" : language === "te" ? "వర్గం (Category):" : "Category:"}
-                      </label>
-                      <select
-                        value={aiCategory}
-                        onChange={(e) => setAiCategory(e.target.value as CategoryId)}
-                        className="field mt-0.5 text-xs bg-white h-8 py-0"
-                      >
-                        {CATEGORIES.map((cat) => (
-                          <option key={cat.id} value={cat.id}>
-                            {CATEGORY_LABELS[language][cat.id] || cat.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500">
-                        {language === "hi" ? "स्थान (Location):" : language === "te" ? "ప్రాంతం (Location):" : "Location:"}
-                      </label>
-                      <input
-                        value={aiLocation}
-                        onChange={(e) => setAiLocation(e.target.value)}
-                        className="field mt-0.5 text-xs bg-white h-8"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 flex items-center justify-between border-t border-brand-200/60 pt-2.5">
-                  <span className="text-[10px] text-slate-500">{t.editSummary}</span>
-                  <button
-                    onClick={handleConfirmAi}
-                    className="focus-ring flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-brand-700"
-                  >
-                    {t.confirmProceed} <ChevronRight size={13} />
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Mandatory Contact Details Card */}
-            {msg.type === "contact_form" && step === "contact" && (
-              <div className="mt-2 w-full max-w-md rounded-2xl border border-line bg-white p-4 shadow-sm animate-fade-up">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-slate-800">
-                  <ShieldCheck size={14} className="text-emerald-600" />
-                  Mandatory Reporter Details
-                </div>
-                <p className="mt-1 text-[10.5px] leading-relaxed text-slate-400">
-                  {t.reporterConfidential}
-                </p>
-
-                <div className="mt-3 space-y-2 text-xs">
-                  <div>
-                    <label className="text-[10px] font-semibold text-slate-500">{t.reporterName}</label>
-                    <input
-                      value={reporterName}
-                      onChange={(e) => setReporterName(e.target.value)}
-                      className="field mt-0.5 text-xs h-8"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500">{t.reporterPhone}</label>
-                      <input
-                        value={reporterPhone}
-                        onChange={(e) => setReporterPhone(e.target.value)}
-                        className="field mt-0.5 text-xs h-8"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-500">{t.reporterEmail}</label>
-                      <input
-                        type="email"
-                        value={reporterEmail}
-                        onChange={(e) => setReporterEmail(e.target.value)}
-                        className="field mt-0.5 text-xs h-8"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleSubmitFinalReport}
-                  disabled={!reporterName || !reporterPhone || !reporterEmail}
-                  className="mt-4 flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-600 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-brand-700 disabled:opacity-50"
                 >
-                  <Check size={14} /> {t.yesSubmit}
-                </button>
-              </div>
-            )}
-
-            {/* Success Card */}
-            {msg.type === "success" && createdReport && (
-              <div className="mt-2 w-full max-w-md rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm animate-fade-up">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 size={18} className="text-emerald-600" />
-                  <span className="text-xs font-bold text-emerald-900">
-                    {t.reportPublished} · ID #{createdReport.id}
+                  {message.text}
+                  <span className={cn("mt-1 block text-[9px]", message.sender === "user" ? "text-brand-200" : "text-slate-400")}>
+                    {message.time}
                   </span>
                 </div>
-                <p className="mt-1 text-[11px] text-emerald-800">
-                  {language === "hi"
-                    ? "आपकी शिकायत दर्ज हो गई है और संबंधित वार्ड टीम को भेज दी गई है।"
-                    : language === "te"
-                    ? "మీ ఫిర్యాదు నమోదైంది మరియు వార్డు అధికారులకు పంపబడింది."
-                    : "Your complaint is live on the city feed and queued for ward triage."}
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <Link
-                    to={`/reports/${createdReport.id}`}
-                    className="flex-1 rounded-xl bg-emerald-600 py-2 text-center text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
-                  >
-                    {t.viewDetails}
-                  </Link>
-                  <Link
-                    to="/explore"
-                    className="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-center text-xs font-semibold text-emerald-800 hover:bg-emerald-50"
-                  >
-                    Public Feed
-                  </Link>
-                </div>
               </div>
-            )}
-
-            <span className="mt-1 text-[9.5px] text-slate-400">{msg.time}</span>
+            ))}
+            {thinking ? (
+              <div className="flex items-center gap-2 text-[11.5px] text-slate-400">
+                <Loader2 size={13} className="animate-spin" /> Preparing a structured draft…
+              </div>
+            ) : null}
+            <div ref={endRef} />
           </div>
-        ))}
 
-        {step === "analyzing" && (
-          <div className="flex items-center gap-2 rounded-xl bg-slate-50 border border-line p-3 text-xs text-slate-500 animate-pulse w-fit">
-            <Sparkles size={14} className="text-brand-600" />
-            AI is analyzing audio & photos, generating summary & priority...
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Media Attachments Preview bar if selected */}
-      {(attachedPhoto || attachedVideo || attachedAudio) && (
-        <div className="flex items-center gap-2 border-t border-line bg-slate-50 px-4 py-2 text-xs shrink-0">
-          <span className="font-semibold text-slate-600">Attached:</span>
-          {attachedPhoto && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] text-slate-700">
-              <Camera size={11} className="text-brand-600" /> Photo evidence
-              <button onClick={() => setAttachedPhoto(null)} className="ml-1 text-slate-400 hover:text-red-500">
-                <X size={10} />
-              </button>
-            </span>
-          )}
-          {attachedVideo && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] text-slate-700">
-              <Video size={11} className="text-brand-600" /> Video (≤1 min)
-              <button onClick={() => setAttachedVideo(null)} className="ml-1 text-slate-400 hover:text-red-500">
-                <X size={10} />
-              </button>
-            </span>
-          )}
-          {attachedAudio && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-white border border-line px-2 py-0.5 text-[11px] text-slate-700">
-              <Mic size={11} className="text-brand-600" /> Audio note
-              <button onClick={() => setAttachedAudio(null)} className="ml-1 text-slate-400 hover:text-red-500">
-                <X size={10} />
-              </button>
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Plus (+) Menu Drawer */}
-      {plusMenuOpen && (
-        <div className="border-t border-line bg-white p-3 shrink-0 animate-fade-up">
-          <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            <span>Attach Evidence</span>
-            <button onClick={() => setPlusMenuOpen(false)}>
-              <X size={13} />
-            </button>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-            <button
-              onClick={() => {
-                setAttachedPhoto("/evidence/pothole.jpg");
-                setPlusMenuOpen(false);
-                toast({ title: "Photo attached", description: "Evidence photo added to report.", variant: "info" });
-              }}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line p-2.5 transition hover:border-brand-300 hover:bg-brand-50/50"
-            >
-              <span className="rounded-lg bg-orange-50 p-2 text-orange-600">
-                <Camera size={16} />
-              </span>
-              <span className="font-semibold text-slate-700">Photo</span>
-              <span className="text-[9px] text-slate-400">Analyzed by AI</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setAttachedVideo("/evidence/sample_video.mp4");
-                setPlusMenuOpen(false);
-                toast({
-                  title: "Video attached (max 1 min)",
-                  description: "Stored for human review only (not analyzed by AI).",
-                  variant: "info",
-                });
-              }}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line p-2.5 transition hover:border-brand-300 hover:bg-brand-50/50"
-            >
-              <span className="rounded-lg bg-purple-50 p-2 text-purple-600">
-                <Video size={16} />
-              </span>
-              <span className="font-semibold text-slate-700">Video</span>
-              <span className="text-[9px] text-purple-600 font-medium">No AI · Human only</span>
-            </button>
-
-            <button
-              onClick={() => {
-                startRecording();
-              }}
-              className="flex flex-col items-center gap-1.5 rounded-xl border border-line p-2.5 transition hover:border-brand-300 hover:bg-brand-50/50"
-            >
-              <span className="rounded-lg bg-emerald-50 p-2 text-emerald-600">
+          <div className="border-t border-line bg-white p-3">
+            <form onSubmit={analyze} className="flex items-end gap-2">
+              <button
+                type="button"
+                onClick={toggleMic}
+                className={cn(
+                  "focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
+                  listening ? "border-red-200 bg-red-50 text-red-600" : "border-line text-slate-500 hover:border-slate-300"
+                )}
+                aria-label={listening ? "Stop dictation" : "Dictate with speech recognition"}
+                title="Dictate (browser speech recognition)"
+              >
                 <Mic size={16} />
-              </span>
-              <span className="font-semibold text-slate-700">Audio Clip</span>
-              <span className="text-[9px] text-slate-400">Analyzed by AI</span>
-            </button>
+              </button>
+              <textarea
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    void analyze();
+                  }
+                }}
+                rows={2}
+                placeholder="e.g. There is a large pothole outside the school gate and bikers keep falling."
+                className="field min-h-[44px] flex-1 resize-none py-2.5 text-[12px]"
+              />
+              <Button type="submit" disabled={thinking || input.trim().length < 10}>
+                <Send size={15} />
+              </Button>
+            </form>
+            <p className="mt-1.5 text-[9.5px] text-slate-400">
+              {language === "en"
+                ? "AI suggestions are drafts, not verified facts. Nothing is submitted until you confirm."
+                : "AI సూచనలు ముసాయిదాలు మాత్రమే. మీరు నిర్ధారించే వరకు ఏదీ సమర్పించబడదు."}
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Recording Waveform Banner */}
-      {isRecording && (
-        <div className="flex items-center justify-between border-t border-red-200 bg-red-50/80 px-4 py-2.5 text-red-700 shrink-0 animate-pulse">
-          <div className="flex items-center gap-2 text-xs font-bold">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-600 animate-ping" />
-            <span>Recording voice... ({recordingSeconds}s / 60s max)</span>
-          </div>
-          <button
-            onClick={stopRecording}
-            className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white shadow-sm hover:bg-red-700"
-          >
-            Done
-          </button>
+        <div className="space-y-3">
+          {!draft ? (
+            <div className="surface p-4">
+              <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                <Info size={12} /> How this works
+              </p>
+              <ol className="mt-2 space-y-2 text-[11.5px] leading-relaxed text-slate-600">
+                <li>1. Describe the issue in any supported language.</li>
+                <li>2. The server sends it to the configured AI model.</li>
+                <li>3. You review title, category, severity and location.</li>
+                <li>4. Only your confirmation creates the complaint.</li>
+              </ol>
+            </div>
+          ) : (
+            <div className="surface p-4">
+              <div className="flex items-center justify-between">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-brand-700">
+                  <Sparkles size={11} /> {draft.source === "ai" ? "AI draft" : "Rule-based draft"}
+                </span>
+                <button onClick={() => setDraft(null)} className="rounded-md p-1 text-slate-400 hover:bg-slate-100" aria-label="Discard draft">
+                  <X size={13} />
+                </button>
+              </div>
+
+              <label htmlFor="draft-title" className="field-label mt-2.5">Title</label>
+              <input
+                id="draft-title"
+                value={draft.title}
+                onChange={(event) => setDraft({ ...draft, title: event.target.value })}
+                className="field text-[12px]"
+              />
+
+              <label htmlFor="draft-description" className="field-label mt-2">Description</label>
+              <textarea
+                id="draft-description"
+                value={draft.description}
+                onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+                rows={3}
+                className="field resize-none text-[11.5px]"
+              />
+
+              <label htmlFor="draft-category" className="field-label mt-2">Category</label>
+              <select
+                id="draft-category"
+                value={draft.category}
+                onChange={(event) => setDraft({ ...draft, category: event.target.value as CategoryId })}
+                className="field text-[12px]"
+              >
+                {CATEGORIES.map((item) => (
+                  <option key={item.id} value={item.id}>{item.label}</option>
+                ))}
+              </select>
+
+              <span className="field-label mt-2">Severity</span>
+              <div className="grid grid-cols-4 gap-1">
+                {SEVERITIES.map((level) => (
+                  <button
+                    key={level}
+                    onClick={() => setDraft({ ...draft, severity: level })}
+                    className={cn(
+                      "rounded-lg border px-1 py-1.5 text-[10px] font-semibold capitalize",
+                      draft.severity === level
+                        ? "border-brand-300 bg-brand-50 text-brand-700"
+                        : "border-line bg-white text-slate-500"
+                    )}
+                  >
+                    {level}
+                  </button>
+                ))}
+              </div>
+
+              <label htmlFor="draft-address" className="field-label mt-3">Location</label>
+              <input
+                id="draft-address"
+                value={address}
+                onChange={(event) => setAddress(event.target.value)}
+                placeholder="Street, landmark, ward"
+                className="field text-[12px]"
+              />
+              <div className="mt-2 overflow-hidden rounded-xl border border-line">
+                <CityMap
+                  complaints={[]}
+                  pin={{ lat, lng }}
+                  onMapClick={(coords) => {
+                    setLat(coords.lat);
+                    setLng(coords.lng);
+                  }}
+                  className="h-40"
+                  autoFit={false}
+                  showLegend={false}
+                />
+              </div>
+
+              <div className="mt-2 flex items-center gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={() => fileRef.current?.click()} disabled={uploading}>
+                  {uploading ? <Loader2 size={13} className="animate-spin" /> : <ImagePlus size={13} />} Photo
+                </Button>
+                <input ref={fileRef} type="file" accept="image/*,video/*" className="hidden" onChange={attach} />
+                {photo ? (
+                  <span className="flex min-w-0 items-center gap-1 text-[10.5px] text-slate-500">
+                    <img src={photo.url} alt="" className="h-7 w-8 rounded object-cover" />
+                    <span className="truncate">{photo.name}</span>
+                    <button onClick={() => setPhoto(null)} aria-label="Remove photo" className="text-slate-400 hover:text-red-500">
+                      <Trash2 size={11} />
+                    </button>
+                  </span>
+                ) : null}
+              </div>
+
+              <Button className="mt-3 w-full" onClick={submit} disabled={submitting}>
+                {submitting ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                {submitting ? "Submitting…" : "Submit complaint"}
+              </Button>
+              <p className="mt-1.5 flex items-center gap-1 text-[9.5px] text-slate-400">
+                <MapPin size={9} /> {categoryMeta(draft.category).short} · {lat.toFixed(4)}, {lng.toFixed(4)}
+              </p>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Chat Input Bar - Docked Cleanly at Bottom */}
-      <div className="border-t border-line bg-white p-2.5 sm:p-3 shrink-0 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
-        <div className="flex items-center gap-2">
-          {/* Plus (+) Button */}
-          <button
-            type="button"
-            onClick={() => setPlusMenuOpen((prev) => !prev)}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
-              plusMenuOpen ? "border-brand-500 bg-brand-50 text-brand-600" : "border-line bg-slate-50 text-slate-600 hover:border-slate-300"
-            }`}
-            title="Attach Media Evidence"
-          >
-            <Plus size={18} strokeWidth={2.4} />
-          </button>
-
-          {/* Text Input */}
-          <input
-            type="text"
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-            placeholder={
-              language === "hi"
-                ? "समस्या लिखें या माइक दबाएं..."
-                : language === "te"
-                ? "సమస్యను టైప్ చేయండి లేదా మాట్లాడండి..."
-                : "Type your complaint or click mic..."
-            }
-            disabled={step === "analyzing" || isRecording}
-            className="field h-10 flex-1 px-3 text-xs placeholder:text-slate-400"
-          />
-
-          {/* Mic Button */}
-          <button
-            type="button"
-            onClick={isRecording ? stopRecording : startRecording}
-            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition ${
-              isRecording
-                ? "border-red-500 bg-red-500 text-white"
-                : "border-line bg-slate-50 text-slate-600 hover:text-brand-600"
-            }`}
-            title={isRecording ? "Stop recording" : t.quickSpeak}
-          >
-            <Mic size={17} />
-          </button>
-
-          {/* Send Button */}
-          <button
-            type="button"
-            onClick={handleSendMessage}
-            disabled={!inputText.trim() && !attachedPhoto && !attachedVideo && !attachedAudio}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-600 text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-40"
-            title="Send"
-          >
-            <Send size={15} />
-          </button>
-        </div>
-
-        <p className="mt-1.5 text-center text-[9px] text-slate-400">
-          NagarMitra AI analyzes text, voice & photos. Video is stored for human inspection only.
-        </p>
       </div>
     </div>
   );

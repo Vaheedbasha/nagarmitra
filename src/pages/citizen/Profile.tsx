@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/store/ToastContext";
 import { useComplaints } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
 import { cn } from "@/lib/utils";
 
 function Toggle({
@@ -56,14 +57,17 @@ function Toggle({
 
 export default function Profile() {
   const { toast } = useToast();
-  const { complaints } = useComplaints();
+  const { myComplaints } = useComplaints();
+  const { user } = useAuth();
   const [updates, setUpdates] = useState(true);
   const [nearby, setNearby] = useState(true);
   const [anonymous, setAnonymous] = useState(false);
 
-  const myReports = complaints.filter((c) => c.reporter.name === "Ananya Rao").length;
-  const resolved = complaints.filter((c) => c.status === "resolved").length;
-  const upvotes = complaints.reduce((sum, c) => sum + c.upvotes, 0);
+  const myReports = myComplaints.length;
+  const resolved = myComplaints.filter((c) => c.status === "resolved").length;
+  const upvotes = myComplaints.reduce((sum, c) => sum + c.upvotes, 0);
+  const displayName = user?.name ?? "Citizen";
+  const displayArea = user?.area || user?.ward || user?.city || "Riverton";
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -73,15 +77,19 @@ export default function Profile() {
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-200">
             Citizen profile
           </p>
-          <h1 className="mt-1 text-xl font-extrabold text-white">Ananya Rao</h1>
+          <h1 className="mt-1 text-xl font-extrabold text-white">{displayName}</h1>
           <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-100">
-            <MapPin size={12} /> Ward 4 · Riverton
+            <MapPin size={12} /> {displayArea} · {user?.city ?? "Riverton"}
           </p>
         </div>
         <div className="relative px-5 pb-5">
           <div className="-mt-8 flex items-end justify-between gap-3">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-lg font-extrabold text-brand-700 shadow-lift ring-4 ring-white">
-              AR
+              {displayName
+                .split(" ")
+                .map((part) => part[0])
+                .slice(0, 2)
+                .join("")}
             </div>
             <span className="mb-1 inline-flex items-center gap-1 rounded-full border border-accent-100 bg-accent-50 px-2.5 py-1 text-[10px] font-bold text-accent-700">
               <ShieldCheck size={11} /> Verified citizen
@@ -90,7 +98,7 @@ export default function Profile() {
 
           <div className="mt-3 grid grid-cols-3 divide-x divide-line rounded-xl border border-line bg-slate-50/50">
             {[
-              { label: "Reports", value: myReports + 4, icon: User },
+              { label: "Reports", value: myReports, icon: User },
               { label: "City upvotes", value: upvotes, icon: ThumbsUp },
               { label: "Resolved", value: resolved, icon: Trophy },
             ].map((stat) => (

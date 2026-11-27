@@ -21,17 +21,9 @@ import { PriorityChip, StatusChip } from "@/components/ui/Badge";
 import { Segmented } from "@/components/ui/Segmented";
 import { Button } from "@/components/ui/Button";
 import { useComplaints } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
 import { useToast } from "@/store/ToastContext";
-import {
-  ADMIN_NAME,
-} from "@/lib/constants";
-import {
-  CATEGORY_BREAKDOWN,
-  OVERVIEW_STATS,
-  PRIORITY_BREAKDOWN,
-  REPORTS_TREND,
-  WEEKLY_TREND,
-} from "@/data/analytics";
+import { deriveAnalytics } from "@/lib/derive";
 import { cn, timeAgo } from "@/lib/utils";
 
 type Range = "7d" | "6m";
@@ -39,9 +31,23 @@ type QuickFilter = "all" | "high" | "unassigned";
 
 export default function AdminOverview() {
   const { complaints } = useComplaints();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [range, setRange] = useState<Range>("6m");
   const [quick, setQuick] = useState<QuickFilter>("all");
+
+  const {
+    OVERVIEW_STATS,
+    REPORTS_TREND,
+    WEEKLY_TREND,
+    CATEGORY_BREAKDOWN,
+    PRIORITY_BREAKDOWN,
+    RESOLUTION_PERFORMANCE,
+  } = useMemo(() => deriveAnalytics(complaints), [complaints]);
+
+  const criticalOpen = complaints.filter(
+    (complaint) => complaint.priority === "critical" && complaint.status !== "resolved"
+  ).length;
 
   const highPriority = useMemo(
     () =>
@@ -98,9 +104,11 @@ export default function AdminOverview() {
       {/* Page intro */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="text-[11px] font-medium text-slate-400">Thursday, 25 November 2026</p>
+          <p className="text-[11px] font-medium text-slate-400">
+            {new Date().toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
           <h2 className="mt-0.5 text-lg font-extrabold sm:text-xl">
-            Good morning, {ADMIN_NAME.split(" ")[0]}.
+            Good morning, {(user?.name ?? "Officer").split(" ")[0]}.
           </h2>
           <p className="mt-0.5 text-[12px] text-slate-500">
             {OVERVIEW_STATS.pending} reports need review and {OVERVIEW_STATS.highPriority} are
@@ -160,7 +168,7 @@ export default function AdminOverview() {
           icon={CheckCircle2}
           trend={OVERVIEW_STATS.trends.resolved}
           tone="teal"
-          hint="76% resolution rate"
+          hint={`${RESOLUTION_PERFORMANCE.resolutionRate}% resolution rate`}
         />
         <StatCard
           label="High priority"
@@ -182,7 +190,7 @@ export default function AdminOverview() {
           action={
             <span className="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-bold text-accent-700">
               <TrendingUp size={11} />
-              +18.7% resolved
+              {RESOLUTION_PERFORMANCE.resolutionRate}% resolved
             </span>
           }
         >
@@ -196,7 +204,7 @@ export default function AdminOverview() {
           />
         </Panel>
 
-        <Panel title="Priority distribution" subtitle="Last 30 days · 318 reports">
+        <Panel title="Priority distribution" subtitle={`Live database · ${OVERVIEW_STATS.total} reports`}>
           <DonutChart
             data={PRIORITY_BREAKDOWN}
             centerLabel="Reports"
@@ -205,7 +213,7 @@ export default function AdminOverview() {
           <div className="mt-4 flex items-start gap-2 rounded-lg bg-red-50/70 px-2.5 py-2">
             <AlertTriangle size={13} className="mt-0.5 shrink-0 text-red-500" />
             <p className="text-[10.5px] leading-relaxed text-red-700">
-              24 critical reports are awaiting triage. Oldest is 6 hours old.
+              {criticalOpen} critical reports are awaiting triage in the current city view.
             </p>
           </div>
         </Panel>
@@ -215,7 +223,7 @@ export default function AdminOverview() {
         <Panel
           title="Reports by category"
           subtitle="Distribution across all open wards"
-          action={<span className="text-[10.5px] text-slate-400">Total 318</span>}
+          action={<span className="text-[10.5px] text-slate-400">Total {OVERVIEW_STATS.total}</span>}
         >
           <BarChart data={CATEGORY_BREAKDOWN.map((item) => ({ ...item, value: item.value }))} height={228} />
         </Panel>
@@ -269,9 +277,9 @@ export default function AdminOverview() {
       {/* Resolution performance strip */}
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { label: "Avg. resolution time", value: "4.2 days", hint: "↓ 12% vs last month", icon: Gauge, tone: "text-brand-600 bg-brand-50" },
-          { label: "On-time resolution", value: "86%", hint: "Within ward SLA", icon: CheckCircle2, tone: "text-accent-600 bg-accent-50" },
-          { label: "Reopened complaints", value: "3.1%", hint: "↓ 0.8 pts vs last month", icon: AlertTriangle, tone: "text-amber-600 bg-amber-50" },
+          { label: "Avg. resolution time", value: RESOLUTION_PERFORMANCE.avgDays === null ? "—" : `${RESOLUTION_PERFORMANCE.avgDays} days`, hint: "From creation to resolution", icon: Gauge, tone: "text-brand-600 bg-brand-50" },
+          { label: "Within SLA", value: RESOLUTION_PERFORMANCE.onTimeRate === null ? "Not tracked" : `${RESOLUTION_PERFORMANCE.onTimeRate}%`, hint: "Resolved before due date", icon: CheckCircle2, tone: "text-accent-600 bg-accent-50" },
+          { label: "Community confirmations", value: `${RESOLUTION_PERFORMANCE.confirmations}`, hint: "Across visible reports", icon: AlertTriangle, tone: "text-amber-600 bg-amber-50" },
         ].map((item) => {
           const Icon = item.icon;
           return (

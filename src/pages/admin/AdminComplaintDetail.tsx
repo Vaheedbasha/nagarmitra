@@ -395,19 +395,21 @@ export default function AdminComplaintDetail() {
 
           <Panel
             title="Reporter"
-            subtitle="Mock identity for demo"
-            action={<Tag tone={complaint.reporter.anonymous ? "amber" : "teal"}>
-              {complaint.reporter.anonymous ? "Anonymous" : "Verified"}
+            subtitle="Identity protected by the API"
+            action={<Tag tone="teal">
+              <ShieldCheck size={11} /> Protected
             </Tag>}
           >
             <div className="flex items-center gap-3">
-              <Avatar name={complaint.reporter.anonymous ? "Anonymous Citizen" : complaint.reporter.name} size="md" />
+              <Avatar name="Citizen" size="md" />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1 text-[12.5px] font-bold text-slate-800">
-                  {complaint.reporter.anonymous ? "Anonymous citizen" : complaint.reporter.name}
-                  {complaint.reporter.anonymous ? <EyeOff size={11} className="text-slate-400" /> : null}
+                  Verified citizen
+                  <EyeOff size={11} className="text-slate-400" />
                 </p>
-                <p className="text-[10.5px] text-slate-400">{complaint.reporter.phone}</p>
+                <p className="text-[10.5px] text-slate-400">
+                  Name, phone and email are never returned to this console.
+                </p>
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -423,7 +425,7 @@ export default function AdminComplaintDetail() {
             <div className="mt-3 flex items-start gap-2 rounded-lg bg-slate-50 px-2.5 py-2">
               <ShieldCheck size={13} className="mt-0.5 shrink-0 text-accent-600" />
               <p className="text-[10px] leading-relaxed text-slate-500">
-                Reporter identity is fictional and shown for demonstration only.
+                Reporter privacy is enforced at the API response level, not by hiding fields in the UI.
               </p>
             </div>
             <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-400">

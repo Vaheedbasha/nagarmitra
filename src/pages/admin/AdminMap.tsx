@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/Button";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
 import { CATEGORIES, PRIORITIES, categoryMeta } from "@/lib/constants";
-import { AREA_HOTSPOTS } from "@/data/analytics";
+import { deriveAnalytics } from "@/lib/derive";
 import { cn, timeAgo } from "@/lib/utils";
 import type { CategoryId, PriorityId } from "@/types";
 
 export default function AdminMap() {
   const { complaints } = useComplaints();
+  const { AREA_HOTSPOTS } = useMemo(() => deriveAnalytics(complaints), [complaints]);
   const { toast } = useToast();
   const [category, setCategory] = useState<CategoryId | "all">("all");
   const [priority, setPriority] = useState<PriorityId | "all">("all");

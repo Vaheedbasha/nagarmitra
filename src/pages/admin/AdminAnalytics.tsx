@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Download,
   Gauge,
@@ -21,22 +21,49 @@ import { StatCard } from "@/components/ui/StatCard";
 import { PriorityChip } from "@/components/ui/Badge";
 import { useToast } from "@/store/ToastContext";
 import { useComplaints } from "@/store/ComplaintsContext";
-import {
-  AREA_HOTSPOTS,
-  CATEGORY_BREAKDOWN,
-  PRIORITY_BREAKDOWN,
-  REPORTS_TREND,
-  RESOLUTION_PERFORMANCE,
-  WEEKLY_TREND,
-} from "@/data/analytics";
+import { deriveAnalytics } from "@/lib/derive";
 import { timeAgo } from "@/lib/utils";
 
 export default function AdminAnalytics() {
   const { toast } = useToast();
-  const { complaints } = useComplaints();
+  const { complaints, selectedCity } = useComplaints();
   const [range, setRange] = useState<"7d" | "6m">("6m");
 
+  const {
+    AREA_HOTSPOTS,
+    CATEGORY_BREAKDOWN,
+    PRIORITY_BREAKDOWN,
+    REPORTS_TREND,
+    WEEKLY_TREND,
+    RESOLUTION_PERFORMANCE,
+    OVERVIEW_STATS,
+  } = useMemo(() => deriveAnalytics(complaints), [complaints]);
+
   const topComplaint = [...complaints].sort((a, b) => b.upvotes - a.upvotes)[0];
+
+  const exportCsv = () => {
+    const rows = [
+      ["Metric", "Value"],
+      ["City", selectedCity],
+      ["Total complaints", String(OVERVIEW_STATS.total)],
+      ["Resolved", String(OVERVIEW_STATS.resolved)],
+      ["In progress", String(OVERVIEW_STATS.progress)],
+      ["Pending review", String(OVERVIEW_STATS.pending)],
+      ["High priority", String(OVERVIEW_STATS.highPriority)],
+      ["Resolution rate (%)", String(RESOLUTION_PERFORMANCE.resolutionRate)],
+      ["Average resolution days", String(RESOLUTION_PERFORMANCE.avgDays ?? "n/a")],
+      [],
+      ["Category", "Reports"],
+      ...CATEGORY_BREAKDOWN.map((item) => [item.label, String(item.value)]),
+    ];
+    const csv = rows.map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    link.download = `nagarmitra-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+    toast({ title: "Analytics exported", description: "CSV downloaded from live records.", variant: "success" });
+  };
 
   return (
     <div className="space-y-4 sm:space-y-5">
@@ -44,7 +71,7 @@ export default function AdminAnalytics() {
         <div>
           <h2 className="text-lg font-extrabold sm:text-xl">City analytics</h2>
           <p className="mt-0.5 text-[12px] text-slate-500">
-            Operational performance for Riverton · all figures are dummy data.
+            Operational performance for {selectedCity} · calculated from live database records.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -60,13 +87,7 @@ export default function AdminAnalytics() {
           <Button
             size="sm"
             variant="outline"
-            onClick={() =>
-              toast({
-                title: "Analytics export queued",
-                description: "Demo only — no file is generated.",
-                variant: "info",
-              })
-            }
+            onClick={exportCsv}
           >
             <Download size={14} />
             Export
@@ -77,35 +98,35 @@ export default function AdminAnalytics() {
       <div className="grid grid-cols-2 gap-2.5 sm:gap-3 xl:grid-cols-4">
         <StatCard
           label="Avg. resolution time"
-          value={`${RESOLUTION_PERFORMANCE.avgDays} days`}
+          value={RESOLUTION_PERFORMANCE.avgDays === null ? "—" : `${RESOLUTION_PERFORMANCE.avgDays} days`}
           icon={Gauge}
-          trend={-12}
+          trend={0}
           tone="brand"
           hint="Across all categories"
         />
         <StatCard
           label="On-time resolution"
-          value={`${RESOLUTION_PERFORMANCE.onTimeRate}%`}
+          value={RESOLUTION_PERFORMANCE.onTimeRate === null ? "Not tracked" : `${RESOLUTION_PERFORMANCE.onTimeRate}%`}
           icon={CheckCircle2}
-          trend={4.2}
+          trend={0}
           tone="teal"
           hint="Within ward SLA"
         />
         <StatCard
-          label="Reopened reports"
-          value={`${RESOLUTION_PERFORMANCE.reopened}%`}
+          label="Resolution rate"
+          value={`${RESOLUTION_PERFORMANCE.resolutionRate}%`}
           icon={RotateCcw}
-          trend={-0.8}
+          trend={0}
           tone="amber"
-          hint="Lower is better"
+          hint="Resolved ÷ total reports"
         />
         <StatCard
-          label="Citizen satisfaction"
-          value={`${RESOLUTION_PERFORMANCE.satisfaction}/5`}
+          label="Community confirmations"
+          value={`${RESOLUTION_PERFORMANCE.confirmations}`}
           icon={ThumbsUp}
-          trend={2.6}
+          trend={0}
           tone="slate"
-          hint="Based on 412 ratings"
+          hint="Persisted citizen confirmations"
         />
       </div>
 
@@ -116,7 +137,7 @@ export default function AdminAnalytics() {
           className="xl:col-span-2"
           action={
             <span className="inline-flex items-center gap-1 rounded-full bg-accent-50 px-2 py-0.5 text-[10px] font-bold text-accent-700">
-              <TrendingUp size={11} /> 76% resolution
+              <TrendingUp size={11} /> {RESOLUTION_PERFORMANCE.resolutionRate}% resolution
             </span>
           }
         >
