@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
+  Camera,
   CheckCircle2,
   ChevronRight,
   ImagePlus,
@@ -9,9 +10,12 @@ import {
   Loader2,
   MapPin,
   Mic,
+  Music,
+  Plus,
   Send,
   Sparkles,
   Trash2,
+  Video,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -24,11 +28,19 @@ import { translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import type { CategoryId, Complaint } from "@/types";
 
+interface MessageMedia {
+  id: string;
+  url: string;
+  name: string;
+  kind: "photo" | "video" | "audio";
+}
+
 interface Message {
   id: string;
   sender: "bot" | "user";
   text: string;
   time: string;
+  media?: MessageMedia;
 }
 
 type Severity = "low" | "medium" | "high" | "critical";
@@ -81,17 +93,71 @@ export default function ChatReport() {
   const [lat, setLat] = useState(CITY_CENTERS[selectedCity]?.lat ?? 17.4);
   const [lng, setLng] = useState(CITY_CENTERS[selectedCity]?.lng ?? 78.47);
   const [photo, setPhoto] = useState<{ id: string; url: string; name: string } | null>(null);
+  const [attachedMedia, setAttachedMedia] = useState<MessageMedia | null>(null);
+  const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState<Complaint | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const recognition = useRef<any>(null);
   const [listening, setListening] = useState(false);
 
   useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowPlusMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, thinking, draft]);
+
+  const handleMediaUpload = async (file: File | undefined, kind: "photo" | "video" | "audio") => {
+    setShowPlusMenu(false);
+    if (!file) return;
+    if (kind === "video" && file.size > 40 * 1024 * 1024) {
+      toast({ title: "Video too large", description: "Video must be under 40 MB (up to 1 minute).", variant: "error" });
+      return;
+    }
+    if (kind === "photo" && file.size > 8 * 1024 * 1024) {
+      toast({ title: "Photo too large", description: "Image must be under 8 MB.", variant: "error" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const result = await uploadMedia(file);
+      const mediaItem: MessageMedia = {
+        id: result.id,
+        url: result.url,
+        name: file.name,
+        kind,
+      };
+      setAttachedMedia(mediaItem);
+      setPhoto(mediaItem);
+      toast({
+        title: `${kind === "photo" ? "Photo" : kind === "video" ? "Video" : "Audio"} attached`,
+        description: file.name,
+        variant: "success",
+      });
+    } catch (caught: any) {
+      toast({
+        title: "Upload failed",
+        description: caught instanceof Error ? caught.message : "Try a smaller file.",
+        variant: "error",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const pushMessage = (message: Omit<Message, "id" | "time">) =>
     setMessages((current) => [
@@ -102,18 +168,20 @@ export default function ChatReport() {
   const analyze = async (event?: React.FormEvent) => {
     event?.preventDefault();
     const text = input.trim();
-    if (text.length < 10) {
-      toast({ title: "Add a little more detail (10+ characters)", variant: "error" });
+    if (text.length < 5 && !attachedMedia) {
+      toast({ title: "Describe the issue or attach evidence", variant: "error" });
       return;
     }
-    pushMessage({ sender: "user", text });
+    const promptText = text || (attachedMedia ? `Report issue with attached ${attachedMedia.kind} evidence.` : "");
+    pushMessage({ sender: "user", text: promptText, media: attachedMedia ?? undefined });
+    setAttachedMedia(null);
     setInput("");
     setThinking(true);
     try {
       const response = await api<{
         configured: boolean;
         result: { title: string; summary: string; category: string; severity: string; clarifyingQuestions: string[] };
-      }>("/api/ai/triage", { method: "POST", body: { text, language, city: selectedCity } });
+      }>("/api/ai/triage", { method: "POST", body: { text: promptText, language, city: selectedCity } });
 
       setDraft({
         title: response.result.title,
@@ -298,6 +366,29 @@ export default function ChatReport() {
                       : "rounded-bl-md border border-line bg-slate-50 text-slate-700"
                   )}
                 >
+                  {message.media ? (
+                    <div className="mb-2 overflow-hidden rounded-xl bg-black/10 p-1">
+                      {message.media.kind === "photo" ? (
+                        <img
+                          src={message.media.url}
+                          alt={message.media.name}
+                          className="max-h-48 w-full rounded-lg object-cover"
+                        />
+                      ) : message.media.kind === "video" ? (
+                        <video
+                          src={message.media.url}
+                          controls
+                          className="max-h-48 w-full rounded-lg bg-black"
+                        />
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-lg bg-white/20 p-2 text-white">
+                          <Music size={16} className="shrink-0" />
+                          <audio src={message.media.url} controls className="h-7 w-full max-w-[200px]" />
+                        </div>
+                      )}
+                      <p className="mt-1 px-1 text-[9.5px] opacity-80 truncate">{message.media.name}</p>
+                    </div>
+                  ) : null}
                   {message.text}
                   <span className={cn("mt-1 block text-[9px]", message.sender === "user" ? "text-brand-200" : "text-slate-400")}>
                     {message.time}
@@ -314,19 +405,166 @@ export default function ChatReport() {
           </div>
 
           <div className="border-t border-line bg-white p-3">
-            <form onSubmit={analyze} className="flex items-end gap-2">
+            {/* Hidden native file inputs */}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void handleMediaUpload(file, "photo");
+              }}
+            />
+            <input
+              ref={videoInputRef}
+              type="file"
+              accept="video/*"
+              capture="environment"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void handleMediaUpload(file, "video");
+              }}
+            />
+            <input
+              ref={audioInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                if (file) void handleMediaUpload(file, "audio");
+              }}
+            />
+
+            {/* Attached media preview pill */}
+            {attachedMedia ? (
+              <div className="mb-2 flex items-center justify-between gap-2 rounded-xl border border-brand-200 bg-brand-50/80 px-3 py-2 text-[11.5px] text-brand-900 animate-fade-in">
+                <div className="flex items-center gap-2 min-w-0">
+                  {attachedMedia.kind === "photo" ? (
+                    <img src={attachedMedia.url} alt="" className="h-8 w-8 rounded-lg object-cover ring-1 ring-brand-300" />
+                  ) : attachedMedia.kind === "video" ? (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-100 text-sky-700">
+                      <Video size={16} />
+                    </span>
+                  ) : (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100 text-purple-700">
+                      <Music size={16} />
+                    </span>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold">{attachedMedia.name}</p>
+                    <p className="text-[9.5px] text-brand-600 capitalize">
+                      {attachedMedia.kind === "video" ? "Video (evidence only)" : `${attachedMedia.kind} evidence attached`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAttachedMedia(null);
+                    setPhoto(null);
+                  }}
+                  className="rounded-md p-1 text-slate-400 hover:bg-white hover:text-red-500"
+                  aria-label="Remove attachment"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : null}
+
+            <form onSubmit={analyze} className="relative flex items-end gap-2">
+              {/* Plus (+) Menu Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowPlusMenu(!showPlusMenu)}
+                  className={cn(
+                    "focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition",
+                    showPlusMenu
+                      ? "border-brand-500 bg-brand-50 text-brand-600 rotate-45 shadow-sm"
+                      : "border-line text-slate-500 hover:border-slate-300 hover:text-slate-700"
+                  )}
+                  aria-label="Add media attachment"
+                  title="Attach photo, video or audio (+)"
+                >
+                  <Plus size={18} />
+                </button>
+
+                {/* Plus (+) Dropdown Drawer */}
+                {showPlusMenu ? (
+                  <div
+                    ref={menuRef}
+                    className="absolute bottom-12 left-0 z-30 w-60 rounded-2xl border border-line bg-white p-2 shadow-xl animate-scale-in"
+                  >
+                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Attach Evidence
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                        <Camera size={15} />
+                      </span>
+                      <div>
+                        <div>Camera / Photo</div>
+                        <div className="text-[9.5px] font-normal text-slate-400">Photos analyzed by AI</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => videoInputRef.current?.click()}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-sky-50 text-sky-600">
+                        <Video size={15} />
+                      </span>
+                      <div>
+                        <div>Video Evidence</div>
+                        <div className="text-[9.5px] font-normal text-slate-400">Up to 1 min (human review)</div>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => audioInputRef.current?.click()}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-[12px] font-semibold text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-purple-50 text-purple-600">
+                        <Music size={15} />
+                      </span>
+                      <div>
+                        <div>Audio Clip</div>
+                        <div className="text-[9.5px] font-normal text-slate-400">Voice or sound recording</div>
+                      </div>
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+
+              {/* Mic / Dictation Button */}
               <button
                 type="button"
                 onClick={toggleMic}
                 className={cn(
-                  "focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border",
-                  listening ? "border-red-200 bg-red-50 text-red-600" : "border-line text-slate-500 hover:border-slate-300"
+                  "focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition",
+                  listening ? "border-red-200 bg-red-50 text-red-600 shadow-sm animate-pulse" : "border-line text-slate-500 hover:border-slate-300"
                 )}
                 aria-label={listening ? "Stop dictation" : "Dictate with speech recognition"}
-                title="Dictate (browser speech recognition)"
+                title="Dictate voice (browser speech recognition)"
               >
                 <Mic size={16} />
               </button>
+
               <textarea
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
@@ -337,10 +575,10 @@ export default function ChatReport() {
                   }
                 }}
                 rows={2}
-                placeholder="e.g. There is a large pothole outside the school gate and bikers keep falling."
+                placeholder="Describe the issue, or use + for camera/video/audio..."
                 className="field min-h-[52px] flex-1 resize-none py-2 leading-relaxed text-[12px]"
               />
-              <Button type="submit" disabled={thinking || input.trim().length < 10}>
+              <Button type="submit" disabled={thinking || (input.trim().length < 5 && !attachedMedia)}>
                 <Send size={15} />
               </Button>
             </form>
