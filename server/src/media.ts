@@ -3,6 +3,7 @@ import path from "node:path";
 import type { Response } from "express";
 import { config } from "./config.js";
 import { queryOne } from "./db.js";
+import { isCloudConfigured, getMediaFromCloud } from "./cloud-storage.js";
 
 const MIME_EXT: Record<string, string> = {
   "image/jpeg": ".jpg",
@@ -20,7 +21,7 @@ export function extensionFor(mime: string) {
 }
 
 /** Sends a stored upload. The DB lookup guarantees the file belongs to a known complaint. */
-export function sendMedia(mediaId: string, res: Response) {
+export async function sendMedia(mediaId: string, res: Response) {
   const media = queryOne<{
     filename: string;
     mime: string;
@@ -32,13 +33,30 @@ export function sendMedia(mediaId: string, res: Response) {
   }
   const safeName = path.basename(media.filename);
   const absolute = path.join(config.uploadDir, safeName);
-  if (!absolute.startsWith(path.resolve(config.uploadDir)) || !fs.existsSync(absolute)) {
+
+  let exists = absolute.startsWith(path.resolve(config.uploadDir)) && fs.existsSync(absolute);
+
+  // If missing from local container disk, pull from cloud storage
+  if (!exists && isCloudConfigured()) {
+    try {
+      const cloud = await getMediaFromCloud(mediaId);
+      if (cloud) {
+        fs.mkdirSync(config.uploadDir, { recursive: true });
+        fs.writeFileSync(absolute, cloud.buffer);
+        exists = true;
+      }
+    } catch (e) {
+      console.warn("[media] Cloud media retrieval error:", e);
+    }
+  }
+
+  if (!exists) {
     res.status(404).json({ error: "Media file missing" });
     return;
   }
   res.setHeader("Content-Type", media.mime);
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("Cache-Control", "private, max-age=86400");
+  res.setHeader("Cache-Control", "public, max-age=86400");
   res.setHeader(
     "Content-Disposition",
     `inline; filename="${encodeURIComponent(media.original_name)}"`

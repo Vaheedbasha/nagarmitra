@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { Navigate, Outlet, Route, Routes, useLocation, Link } from "react-router-dom";
 import { Compass, Loader2, ShieldAlert } from "lucide-react";
 import { ComplaintsProvider } from "@/store/ComplaintsContext";
@@ -9,30 +9,32 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/Button";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { translate } from "@/lib/i18n";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-import Login from "@/pages/auth/Login";
-import Register from "@/pages/auth/Register";
-import OfficialRegister from "@/pages/auth/OfficialRegister";
-import PendingApproval from "@/pages/auth/PendingApproval";
-import ForgotPassword from "@/pages/auth/ForgotPassword";
+// Lazy-loaded routes for optimal initial bundle size
+const Login = lazy(() => import("@/pages/auth/Login"));
+const Register = lazy(() => import("@/pages/auth/Register"));
+const OfficialRegister = lazy(() => import("@/pages/auth/OfficialRegister"));
+const PendingApproval = lazy(() => import("@/pages/auth/PendingApproval"));
+const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
 
-import Home from "@/pages/citizen/Home";
-import VoiceReport from "@/pages/citizen/VoiceReport";
-import ManualReport from "@/pages/citizen/ManualReport";
-import ChatReport from "@/pages/citizen/ChatReport";
-import Explore from "@/pages/citizen/Explore";
-import MyReports from "@/pages/citizen/MyReports";
-import ComplaintDetail from "@/pages/citizen/ComplaintDetail";
-import Profile from "@/pages/citizen/Profile";
+const Home = lazy(() => import("@/pages/citizen/Home"));
+const VoiceReport = lazy(() => import("@/pages/citizen/VoiceReport"));
+const ManualReport = lazy(() => import("@/pages/citizen/ManualReport"));
+const ChatReport = lazy(() => import("@/pages/citizen/ChatReport"));
+const Explore = lazy(() => import("@/pages/citizen/Explore"));
+const MyReports = lazy(() => import("@/pages/citizen/MyReports"));
+const ComplaintDetail = lazy(() => import("@/pages/citizen/ComplaintDetail"));
+const Profile = lazy(() => import("@/pages/citizen/Profile"));
 
-import AdminOverview from "@/pages/admin/AdminOverview";
-import AdminComplaints from "@/pages/admin/AdminComplaints";
-import AdminComplaintDetail from "@/pages/admin/AdminComplaintDetail";
-import AdminMap from "@/pages/admin/AdminMap";
-import AdminAnalytics from "@/pages/admin/AdminAnalytics";
-import AdminVerification from "@/pages/admin/AdminVerification";
-import AdminSettings from "@/pages/admin/AdminSettings";
-import AdminProfile from "@/pages/admin/AdminProfile";
+const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
+const AdminComplaints = lazy(() => import("@/pages/admin/AdminComplaints"));
+const AdminComplaintDetail = lazy(() => import("@/pages/admin/AdminComplaintDetail"));
+const AdminMap = lazy(() => import("@/pages/admin/AdminMap"));
+const AdminAnalytics = lazy(() => import("@/pages/admin/AdminAnalytics"));
+const AdminVerification = lazy(() => import("@/pages/admin/AdminVerification"));
+const AdminSettings = lazy(() => import("@/pages/admin/AdminSettings"));
+const AdminProfile = lazy(() => import("@/pages/admin/AdminProfile"));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -109,60 +111,64 @@ function AppRoutes() {
   return (
     <>
       <ScrollToTop />
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/official-register" element={<OfficialRegister />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Suspense fallback={<Splash />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/official-register" element={<OfficialRegister />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
-        {/* Public Citizen Pages */}
-        <Route element={<CitizenLayout />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/explore" element={<Explore />} />
-          <Route path="/reports/:id" element={<ComplaintDetail />} />
+          {/* Public Citizen Pages */}
+          <Route element={<CitizenLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/explore" element={<Explore />} />
+            <Route path="/reports/:id" element={<ComplaintDetail />} />
 
-          {/* Authenticated Citizen Actions */}
+            {/* Authenticated Citizen Actions */}
+            <Route element={<RequireAuth />}>
+              <Route path="/report" element={<ChatReport />} />
+              <Route path="/report/chat" element={<ChatReport />} />
+              <Route path="/report/voice" element={<VoiceReport />} />
+              <Route path="/report/manual" element={<ManualReport />} />
+              <Route path="/reports" element={<MyReports />} />
+              <Route path="/profile" element={<Profile />} />
+            </Route>
+          </Route>
+
           <Route element={<RequireAuth />}>
-            <Route path="/report" element={<ChatReport />} />
-            <Route path="/report/chat" element={<ChatReport />} />
-            <Route path="/report/voice" element={<VoiceReport />} />
-            <Route path="/report/manual" element={<ManualReport />} />
-            <Route path="/reports" element={<MyReports />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/pending-approval" element={<PendingApproval />} />
           </Route>
-        </Route>
 
-        <Route element={<RequireAuth />}>
-          <Route path="/pending-approval" element={<PendingApproval />} />
-        </Route>
-
-        <Route element={<RequireStaff />}>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<AdminOverview />} />
-            <Route path="complaints" element={<AdminComplaints />} />
-            <Route path="complaints/:id" element={<AdminComplaintDetail />} />
-            <Route path="map" element={<AdminMap />} />
-            <Route path="analytics" element={<AdminAnalytics />} />
-            <Route path="verification" element={<AdminVerification />} />
-            <Route path="profile" element={<AdminProfile />} />
-            <Route path="settings" element={<AdminSettings />} />
+          <Route element={<RequireStaff />}>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminOverview />} />
+              <Route path="complaints" element={<AdminComplaints />} />
+              <Route path="complaints/:id" element={<AdminComplaintDetail />} />
+              <Route path="map" element={<AdminMap />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="verification" element={<AdminVerification />} />
+              <Route path="profile" element={<AdminProfile />} />
+              <Route path="settings" element={<AdminSettings />} />
+            </Route>
           </Route>
-        </Route>
 
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </Suspense>
     </>
   );
 }
 
 export default function App() {
   return (
-    <ToastProvider>
-      <AuthProvider>
-        <ComplaintsProvider>
-          <AppRoutes />
-        </ComplaintsProvider>
-      </AuthProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <AuthProvider>
+          <ComplaintsProvider>
+            <AppRoutes />
+          </ComplaintsProvider>
+        </AuthProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   );
 }

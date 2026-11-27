@@ -164,3 +164,54 @@ export function queueCloudSync(delayMs = 150): void {
     void syncCloudDatabase();
   }, delayMs);
 }
+
+/**
+ * Persist an uploaded media file (photo/video) directly to Neon Postgres
+ * so files survive serverless container recycling.
+ */
+export async function saveMediaToCloud(id: string, mime: string, buffer: Buffer): Promise<void> {
+  const sql = getSql();
+  if (!sql) return;
+  try {
+    await sql`
+      CREATE TABLE IF NOT EXISTS nagarmitra_media_store (
+        id TEXT PRIMARY KEY,
+        mime TEXT NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+    const base64 = buffer.toString("base64");
+    await sql`
+      INSERT INTO nagarmitra_media_store (id, mime, content)
+      VALUES (${id}, ${mime}, ${base64})
+      ON CONFLICT (id) DO UPDATE SET
+        mime = EXCLUDED.mime,
+        content = EXCLUDED.content
+    `;
+    console.log(`[cloud-storage] Saved media ${id} (${buffer.length} bytes) to Neon`);
+  } catch (error) {
+    console.error("[cloud-storage] Error saving media to Neon:", error);
+  }
+}
+
+/**
+ * Retrieve a stored media file from Neon Postgres if it was purged from /tmp.
+ */
+export async function getMediaFromCloud(id: string): Promise<{ mime: string; buffer: Buffer } | null> {
+  const sql = getSql();
+  if (!sql) return null;
+  try {
+    const rows = await sql`
+      SELECT mime, content FROM nagarmitra_media_store WHERE id = ${id} LIMIT 1
+    `;
+    if (!rows || rows.length === 0 || !rows[0].content) return null;
+    return {
+      mime: rows[0].mime as string,
+      buffer: Buffer.from(rows[0].content as string, "base64"),
+    };
+  } catch (error) {
+    console.error("[cloud-storage] Error retrieving media from Neon:", error);
+    return null;
+  }
+}

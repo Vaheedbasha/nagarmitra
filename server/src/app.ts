@@ -7,6 +7,7 @@ import { complaintRouter } from "./routes/complaints.js";
 import { adminRouter } from "./routes/admin.js";
 import { miscRouter } from "./routes/misc.js";
 import { checkpointDatabase } from "./db.js";
+import { sendMedia } from "./media.js";
 import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "./cloud-storage.js";
 
 export function createApp() {
@@ -71,6 +72,10 @@ export function createApp() {
   app.use("/api/complaints", complaintRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api", miscRouter);
+
+  app.get("/api/media/:id", (req, res) => {
+    void sendMedia(String(req.params.id), res);
+  });
 
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "Endpoint not found" });

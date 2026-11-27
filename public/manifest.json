@@ -1,0 +1,42 @@
+{
+  "name": "NagarMitra — Civic Intelligence",
+  "short_name": "NagarMitra",
+  "description": "Report civic issues, track progress and help your city act faster.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#4F46E5",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/nagarmitra-icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Report an Issue",
+      "short_name": "Report",
+      "description": "File a civic complaint in 30 seconds",
+      "url": "/report/chat",
+      "icons": [{ "src": "/nagarmitra-icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Explore City Map",
+      "short_name": "Explore",
+      "description": "See issues reported in your neighborhood",
+      "url": "/explore",
+      "icons": [{ "src": "/nagarmitra-icon.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Reports",
+      "short_name": "My Reports",
+      "description": "Track the status of your reported issues",
+      "url": "/reports",
+      "icons": [{ "src": "/nagarmitra-icon.png", "sizes": "192x192" }]
+    }
+  ]
+}

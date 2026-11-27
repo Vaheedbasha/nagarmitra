@@ -1,4 +1,5 @@
 import { Router } from "express";
+import fs from "node:fs";
 import path from "node:path";
 import multer from "multer";
 import { requireAuth, optionalAuth } from "../auth.js";
@@ -10,6 +11,7 @@ import { audit, serializeComplaint, type ComplaintRow } from "../serialize.js";
 import { CATEGORY_IDS, canonicalCategory, type StatusId } from "../types.js";
 import { bad, parseNumber, queryString, text } from "../validate.js";
 import { explainScore, factorsForSeverity, priorityFromScore, scoreFromFactors } from "../priority.js";
+import { isCloudConfigured, saveMediaToCloud } from "../cloud-storage.js";
 
 export const complaintRouter = Router();
 
@@ -331,6 +333,14 @@ complaintRouter.post("/media", requireAuth, upload.single("file"), (req, res) =>
      VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)`,
     [id, kind, req.file.filename, req.file.mimetype, req.file.size, req.file.originalname.slice(0, 200), req.user!.id, nowIso()]
   );
+  if (isCloudConfigured() && req.file.path) {
+    try {
+      const buffer = fs.readFileSync(req.file.path);
+      void saveMediaToCloud(id, req.file.mimetype, buffer);
+    } catch (e) {
+      console.warn("[media] Cloud media save warning:", e);
+    }
+  }
   res.status(201).json({ id, kind, url: `/api/media/${id}`, size: req.file.size });
 });
 
@@ -341,7 +351,7 @@ complaintRouter.get("/media/:id", optionalAuth, (req, res) => {
   );
   if (!media) return bad(res, 404, "Media not found");
   if (!media.complaint_id && media.uploaded_by !== req.user?.id) return bad(res, 403, "Not allowed");
-  sendMedia(String(req.params.id), res);
+  void sendMedia(String(req.params.id), res);
 });
 
 complaintRouter.post("/:id/media", requireAuth, upload.single("file"), (req, res) => {
@@ -357,6 +367,14 @@ complaintRouter.post("/:id/media", requireAuth, upload.single("file"), (req, res
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, row.id, kind, req.file.filename, req.file.mimetype, req.file.size, req.file.originalname.slice(0, 200), req.user!.id, nowIso()]
   );
+  if (isCloudConfigured() && req.file.path) {
+    try {
+      const buffer = fs.readFileSync(req.file.path);
+      void saveMediaToCloud(id, req.file.mimetype, buffer);
+    } catch (e) {
+      console.warn("[media] Cloud media save warning:", e);
+    }
+  }
   execute(`UPDATE complaints SET ${kind === "photo" ? "photo" : "video"} = ?, updated_at = ? WHERE id = ?`, [
     `/api/media/${id}`,
     nowIso(),
