@@ -4,6 +4,7 @@ import { isAiConfigured } from "../config.js";
 import { execute, nowIso, queryOne } from "../db.js";
 import { listNotifications, unreadCount } from "../notifications.js";
 import { AiUnavailableError, triageComplaint } from "../ai.js";
+import { isCloudConfigured } from "../cloud-storage.js";
 import { bad, text } from "../validate.js";
 
 export const miscRouter = Router();
@@ -18,6 +19,7 @@ miscRouter.get("/health", (_req, res) => {
   res.status(database === "ok" ? 200 : 503).json({
     status: database === "ok" ? "ok" : "degraded",
     database,
+    cloudDatabase: isCloudConfigured(),
     aiConfigured: isAiConfigured(),
     time: nowIso(),
   });
