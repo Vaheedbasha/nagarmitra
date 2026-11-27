@@ -9,6 +9,8 @@ let syncTimeout: NodeJS.Timeout | null = null;
 let isSyncing = false;
 let pendingSync = false;
 
+let localSnapshotTimestamp: string | null = null;
+
 const DEFAULT_NEON_URL =
   "postgresql://neondb_owner:npg_Uj1GNHu7wlTk@ep-young-mountain-bb37bsyo-pooler.c-15.us-east-1.aws.neon.tech/neondb?sslmode=require";
 
@@ -57,7 +59,7 @@ export async function initCloudStorage(): Promise<boolean> {
 
     // Check for existing snapshot
     const rows = await sql`
-      SELECT content FROM nagarmitra_db_store WHERE id = 'primary' LIMIT 1
+      SELECT content, updated_at FROM nagarmitra_db_store WHERE id = 'primary' LIMIT 1
     `;
 
     if (rows && rows.length > 0 && rows[0].content) {
@@ -65,7 +67,8 @@ export async function initCloudStorage(): Promise<boolean> {
       const buffer = Buffer.from(base64Data, "base64");
       fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
       fs.writeFileSync(config.dbPath, buffer);
-      console.log(`[cloud-storage] Restored SQLite database from Neon (${buffer.length} bytes)`);
+      localSnapshotTimestamp = rows[0].updated_at ? new Date(rows[0].updated_at).toISOString() : new Date().toISOString();
+      console.log(`[cloud-storage] Restored SQLite database from Neon (${buffer.length} bytes, updated: ${localSnapshotTimestamp})`);
       return true;
     }
 
@@ -73,6 +76,39 @@ export async function initCloudStorage(): Promise<boolean> {
     return false;
   } catch (error) {
     console.error("[cloud-storage] Error initializing cloud storage:", error);
+    return false;
+  }
+}
+
+/**
+ * Check if another serverless container has pushed a newer snapshot to Neon,
+ * and if so, pull and reopen the local SQLite database.
+ */
+export async function refreshIfNewer(): Promise<boolean> {
+  const sql = getSql();
+  if (!sql) return false;
+
+  try {
+    const rows = await sql`
+      SELECT content, updated_at FROM nagarmitra_db_store WHERE id = 'primary' LIMIT 1
+    `;
+    if (!rows || rows.length === 0 || !rows[0].content) return false;
+    const remoteIso = rows[0].updated_at ? new Date(rows[0].updated_at).toISOString() : null;
+
+    if (!localSnapshotTimestamp || (remoteIso && remoteIso > localSnapshotTimestamp)) {
+      const base64Data = rows[0].content as string;
+      const buffer = Buffer.from(base64Data, "base64");
+      fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
+      fs.writeFileSync(config.dbPath, buffer);
+      localSnapshotTimestamp = remoteIso;
+      const { reopenDb } = await import("./db.js");
+      reopenDb();
+      console.log(`[cloud-storage] Refreshed newer SQLite snapshot from Neon (${buffer.length} bytes, timestamp: ${remoteIso})`);
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error("[cloud-storage] Error checking/refreshing newer snapshot:", error);
     return false;
   }
 }
@@ -95,6 +131,7 @@ export async function syncCloudDatabase(): Promise<void> {
     if (fs.existsSync(config.dbPath)) {
       const buffer = fs.readFileSync(config.dbPath);
       const base64 = buffer.toString("base64");
+      const nowIso = new Date().toISOString();
 
       await sql`
         INSERT INTO nagarmitra_db_store (id, content, updated_at)
@@ -103,6 +140,7 @@ export async function syncCloudDatabase(): Promise<void> {
           content = EXCLUDED.content,
           updated_at = NOW()
       `;
+      localSnapshotTimestamp = nowIso;
       console.log(`[cloud-storage] Synced SQLite snapshot to Neon (${buffer.length} bytes)`);
     }
   } catch (error) {

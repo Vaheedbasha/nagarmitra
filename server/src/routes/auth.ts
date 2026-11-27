@@ -12,6 +12,7 @@ import {
 } from "../auth.js";
 import { config } from "../config.js";
 import { execute, nowIso, queryOne, uid } from "../db.js";
+import { isCloudConfigured, refreshIfNewer } from "../cloud-storage.js";
 import { notifyStaff, notifyUser } from "../notifications.js";
 import {
   bad,
@@ -126,15 +127,23 @@ authRouter.post("/register-official", (req, res) => {
   });
 });
 
-authRouter.post("/login", (req, res) => {
+authRouter.post("/login", async (req, res) => {
   const identifier = text(req.body?.identifier, 160).toLowerCase();
   const password = text(req.body?.password, 200);
   if (!identifier || !password) return bad(res, 400, "Enter your email or phone and password.");
 
-  const row = queryOne<Record<string, any>>(
+  let row = queryOne<Record<string, any>>(
     "SELECT * FROM users WHERE email = ? OR phone = ?",
     [identifier, normalisePhone(identifier)]
   );
+  if (!row && isCloudConfigured()) {
+    // If not found in local container, check if another container created this user
+    await refreshIfNewer();
+    row = queryOne<Record<string, any>>(
+      "SELECT * FROM users WHERE email = ? OR phone = ?",
+      [identifier, normalisePhone(identifier)]
+    );
+  }
   if (!row || !verifyPassword(password, row.password_hash)) {
     return bad(res, 401, "Incorrect email/phone or password.");
   }

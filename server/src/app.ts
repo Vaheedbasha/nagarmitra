@@ -7,7 +7,7 @@ import { complaintRouter } from "./routes/complaints.js";
 import { adminRouter } from "./routes/admin.js";
 import { miscRouter } from "./routes/misc.js";
 import { checkpointDatabase } from "./db.js";
-import { isCloudConfigured, syncCloudDatabase } from "./cloud-storage.js";
+import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "./cloud-storage.js";
 
 export function createApp() {
   const app = express();
@@ -42,9 +42,14 @@ export function createApp() {
 
   app.use(express.json({ limit: "1mb" }));
 
-  // Cloud persistence middleware: checkpoint SQLite and await Neon sync before completing response
-  app.use((req, res, next) => {
-    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method)) {
+  // Cloud persistence middleware: refresh before mutation, checkpoint SQLite and await Neon sync before completing response
+  app.use(async (req, res, next) => {
+    if (["POST", "PATCH", "PUT", "DELETE"].includes(req.method) && isCloudConfigured()) {
+      try {
+        await refreshIfNewer();
+      } catch (err) {
+        console.warn("[cloud-storage] Pre-mutation sync warning:", err);
+      }
       const originalEnd = res.end.bind(res);
       res.end = function (...args: any[]) {
         if (res.statusCode < 400 && isCloudConfigured()) {

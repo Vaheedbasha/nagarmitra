@@ -2,6 +2,7 @@ import { createHash, randomBytes, scryptSync, timingSafeEqual } from "node:crypt
 import type { NextFunction, Request, Response } from "express";
 import { config } from "./config.js";
 import { execute, nowIso, queryOne } from "./db.js";
+import { isCloudConfigured, refreshIfNewer } from "./cloud-storage.js";
 
 export type Role = "citizen" | "official" | "admin";
 
@@ -98,25 +99,52 @@ function bearer(req: Request) {
   return header.slice(7).trim() || null;
 }
 
-/** Attaches req.user when a valid session exists; never rejects. */
-export function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+export async function authenticateRequest(req: Request): Promise<SessionUser | null> {
   const token = bearer(req);
-  if (token) {
-    const user = userFromToken(token);
+  if (!token) return null;
+  let user = userFromToken(token);
+  if (!user && isCloudConfigured()) {
+    // Session may have been created by another serverless container; pull latest snapshot
+    let updated = await refreshIfNewer();
+    if (updated) {
+      user = userFromToken(token);
+    }
+    // If still not found, pause briefly and retry once in case a concurrent sync is in flight
+    if (!user) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+      updated = await refreshIfNewer();
+      if (updated) {
+        user = userFromToken(token);
+      }
+    }
+  }
+  return user;
+}
+
+/** Attaches req.user when a valid session exists; never rejects. */
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction) {
+  try {
+    const user = await authenticateRequest(req);
     if (user) req.user = user;
+  } catch (err) {
+    console.error("[auth] optionalAuth resolution error:", err);
   }
   next();
 }
 
-export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const token = bearer(req);
-  const user = token ? userFromToken(token) : null;
-  if (!user) {
+export async function requireAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = await authenticateRequest(req);
+    if (!user) {
+      res.status(401).json({ error: "Authentication required" });
+      return;
+    }
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error("[auth] requireAuth resolution error:", err);
     res.status(401).json({ error: "Authentication required" });
-    return;
   }
-  req.user = user;
-  next();
 }
 
 /** Operational staff: an approved official or an administrator. */

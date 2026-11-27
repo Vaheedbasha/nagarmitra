@@ -62,9 +62,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(data.user);
     } catch (err: any) {
       if (err?.status === 401) {
-        setToken(null);
-        setTokenState(null);
-        setUser(null);
+        // Retry once after 350ms in case serverless cold-start synchronization is completing
+        try {
+          await new Promise((r) => setTimeout(r, 350));
+          const retryData = await api<{ user: SessionUser }>("/api/auth/me");
+          setUser(retryData.user);
+          return;
+        } catch {
+          setToken(null);
+          setTokenState(null);
+          setUser(null);
+        }
       }
     } finally {
       setLoading(false);
