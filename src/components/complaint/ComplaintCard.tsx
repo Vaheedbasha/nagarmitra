@@ -71,7 +71,7 @@ export function ComplaintCard({
     <Link
       to={`/reports/${complaint.id}`}
       className={cn(
-        "surface surface-hover group flex flex-col gap-3 overflow-hidden p-3.5 sm:gap-4 sm:p-4",
+        "surface surface-hover group flex h-full flex-col justify-between gap-3 overflow-hidden p-3.5 sm:gap-4 sm:p-4",
         className
       )}
     >

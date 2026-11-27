@@ -25,13 +25,13 @@ const NAV = [
 export function CitizenLayout() {
   const location = useLocation();
   const { selectedCity, setSelectedCity, language, setLanguage } = useComplaints();
-  const isChatRoute = location.pathname.startsWith("/report");
+  const isChatRoute = location.pathname === "/report" || location.pathname.startsWith("/report/");
 
   return (
     <div className="flex min-h-screen w-full flex-col bg-canvas overflow-x-hidden">
       <header className="sticky top-0 z-40 border-b border-line/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-2 px-3 sm:px-6">
-          <div className="flex items-center gap-2 sm:gap-6 min-w-0">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2.5 sm:gap-6 min-w-0">
             <Logo />
 
             {/* City Selector Pill */}
@@ -112,8 +112,8 @@ export function CitizenLayout() {
         className={cn(
           "flex-1 w-full max-w-full overflow-x-hidden",
           isChatRoute
-            ? "flex flex-col min-h-0 p-0"
-            : "mx-auto max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 md:pb-14"
+            ? "flex flex-col min-h-0 p-0 pb-20 md:pb-0"
+            : "mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 lg:px-8 md:pb-14"
         )}
       >
         <Outlet />
@@ -125,57 +125,58 @@ export function CitizenLayout() {
         </footer>
       )}
 
-      {!isChatRoute && (
-        <nav
-          className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 md:hidden shadow-lg"
-          aria-label="Mobile navigation"
-        >
-          <div className="mx-auto flex max-w-md items-center justify-around px-2">
-            {NAV.map((item) => {
-              const active =
-                item.to === "/"
-                  ? location.pathname === "/"
-                  : location.pathname.startsWith(item.to);
-              const Icon = item.icon;
-              if (item.highlight) {
-                return (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className="relative -top-3 flex flex-col items-center justify-center focus:outline-none"
-                  >
-                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lift ring-4 ring-white transition active:scale-95">
-                      <Icon size={22} strokeWidth={2.4} />
-                    </span>
-                    <span className="mt-0.5 text-[9.5px] font-bold text-brand-700">Report</span>
-                  </NavLink>
-                );
-              }
+      {/* Persistent Bottom Navigation across all citizen views */}
+      <nav
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 md:hidden shadow-lg"
+        aria-label="Mobile navigation"
+      >
+        <div className="mx-auto flex max-w-md items-center justify-around px-2">
+          {NAV.map((item) => {
+            const active =
+              item.to === "/"
+                ? location.pathname === "/"
+                : item.to === "/report/chat"
+                ? isChatRoute
+                : location.pathname.startsWith(item.to);
+            const Icon = item.icon;
+            if (item.highlight) {
               return (
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  end={item.end}
-                  className={cn(
-                    "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition",
-                    active ? "text-brand-600" : "text-slate-400"
-                  )}
+                  className="relative -top-3 flex flex-col items-center justify-center focus:outline-none"
                 >
-                  <span
-                    className={cn(
-                      "rounded-lg px-2.5 py-1 transition",
-                      active && "bg-brand-50"
-                    )}
-                  >
-                    <Icon size={18} strokeWidth={active ? 2.4 : 2} />
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-600 text-white shadow-lift ring-4 ring-white transition active:scale-95">
+                    <Icon size={22} strokeWidth={2.4} />
                   </span>
-                  {item.label}
+                  <span className="mt-0.5 text-[9.5px] font-bold text-brand-700">Report</span>
                 </NavLink>
               );
-            })}
-          </div>
-        </nav>
-      )}
+            }
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={cn(
+                  "relative flex flex-1 flex-col items-center gap-0.5 py-2 text-[10px] font-semibold transition",
+                  active ? "text-brand-600" : "text-slate-400"
+                )}
+              >
+                <span
+                  className={cn(
+                    "rounded-lg px-2.5 py-1 transition",
+                    active && "bg-brand-50"
+                  )}
+                >
+                  <Icon size={18} strokeWidth={active ? 2.4 : 2} />
+                </span>
+                {item.label}
+              </NavLink>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
