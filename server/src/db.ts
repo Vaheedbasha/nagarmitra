@@ -174,6 +174,14 @@ export const nowIso = () => new Date().toISOString();
 export const today = () => nowIso().slice(0, 10);
 export const uid = () => randomUUID();
 
+export function checkpointDatabase() {
+  try {
+    db.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+  } catch (e) {
+    console.warn("[db] Checkpoint notice:", e);
+  }
+}
+
 export function queryAll<T = Record<string, unknown>>(
   sql: string,
   params: SQLInputValue[] = []

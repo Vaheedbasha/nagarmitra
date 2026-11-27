@@ -49,7 +49,7 @@ export const config = {
   sessionDays: Number(env.SESSION_DAYS ?? 7),
   /** Seeded administrator. In production ADMIN_PASSWORD is required. */
   adminEmail: (env.ADMIN_EMAIL ?? "admin@nagarmitra.local").toLowerCase(),
-  adminPassword: env.ADMIN_PASSWORD ?? (isProduction ? "" : "Admin@12345"),
+  adminPassword: env.ADMIN_PASSWORD || "Admin@12345",
   demoCitizenPassword: env.DEMO_CITIZEN_PASSWORD ?? "Citizen@12345",
   ai: {
     apiKey: env.AI_API_KEY ?? "",

@@ -1,0 +1,122 @@
+import fs from "node:fs";
+import path from "node:path";
+import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { config } from "./config.js";
+import { checkpointDatabase } from "./db.js";
+
+let sqlClient: NeonQueryFunction<false, false> | null = null;
+let syncTimeout: NodeJS.Timeout | null = null;
+let isSyncing = false;
+let pendingSync = false;
+
+function getPostgresUrl(): string | null {
+  const url = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+  if (url && (url.startsWith("postgres://") || url.startsWith("postgresql://"))) {
+    return url;
+  }
+  return null;
+}
+
+export function isCloudConfigured(): boolean {
+  return Boolean(getPostgresUrl());
+}
+
+function getSql(): NeonQueryFunction<false, false> | null {
+  if (!sqlClient) {
+    const url = getPostgresUrl();
+    if (url) {
+      sqlClient = neon(url);
+    }
+  }
+  return sqlClient;
+}
+
+/**
+ * On cold start: fetch the latest SQLite snapshot from Neon Postgres
+ * and write it to disk so SQLite starts with all existing users and complaints.
+ */
+export async function initCloudStorage(): Promise<boolean> {
+  const sql = getSql();
+  if (!sql) return false;
+
+  try {
+    // Ensure table exists in Neon
+    await sql`
+      CREATE TABLE IF NOT EXISTS nagarmitra_db_store (
+        id TEXT PRIMARY KEY,
+        content TEXT NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    // Check for existing snapshot
+    const rows = await sql`
+      SELECT content FROM nagarmitra_db_store WHERE id = 'primary' LIMIT 1
+    `;
+
+    if (rows && rows.length > 0 && rows[0].content) {
+      const base64Data = rows[0].content as string;
+      const buffer = Buffer.from(base64Data, "base64");
+      fs.mkdirSync(path.dirname(config.dbPath), { recursive: true });
+      fs.writeFileSync(config.dbPath, buffer);
+      console.log(`[cloud-storage] Restored SQLite database from Neon (${buffer.length} bytes)`);
+      return true;
+    }
+
+    console.log("[cloud-storage] Connected to Neon. No existing database snapshot found; will initialize fresh.");
+    return false;
+  } catch (error) {
+    console.error("[cloud-storage] Error initializing cloud storage:", error);
+    return false;
+  }
+}
+
+/**
+ * Save the local SQLite database file to Neon Postgres.
+ */
+export async function syncCloudDatabase(): Promise<void> {
+  const sql = getSql();
+  if (!sql) return;
+
+  if (isSyncing) {
+    pendingSync = true;
+    return;
+  }
+
+  isSyncing = true;
+  try {
+    checkpointDatabase();
+    if (fs.existsSync(config.dbPath)) {
+      const buffer = fs.readFileSync(config.dbPath);
+      const base64 = buffer.toString("base64");
+
+      await sql`
+        INSERT INTO nagarmitra_db_store (id, content, updated_at)
+        VALUES ('primary', ${base64}, NOW())
+        ON CONFLICT (id) DO UPDATE SET
+          content = EXCLUDED.content,
+          updated_at = NOW()
+      `;
+      console.log(`[cloud-storage] Synced SQLite snapshot to Neon (${buffer.length} bytes)`);
+    }
+  } catch (error) {
+    console.error("[cloud-storage] Error syncing database to Neon:", error);
+  } finally {
+    isSyncing = false;
+    if (pendingSync) {
+      pendingSync = false;
+      void syncCloudDatabase();
+    }
+  }
+}
+
+/**
+ * Debounced sync helper for frequent write events.
+ */
+export function queueCloudSync(delayMs = 150): void {
+  if (!isCloudConfigured()) return;
+  if (syncTimeout) clearTimeout(syncTimeout);
+  syncTimeout = setTimeout(() => {
+    void syncCloudDatabase();
+  }, delayMs);
+}
