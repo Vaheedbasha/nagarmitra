@@ -12,6 +12,7 @@ import {
   Loader2,
   LocateFixed,
   MapPin,
+  Mic,
   Search,
   Send,
   Trash2,
@@ -366,7 +367,7 @@ export default function ManualReport() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl px-4 sm:px-6 py-5 pb-24 sm:pb-10">
       <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
         <ArrowLeft size={14} /> Back to home
       </Link>
@@ -566,18 +567,24 @@ export default function ManualReport() {
               Tap the map, search an address, or use your current position. You can adjust the pin.
             </p>
 
-            <form onSubmit={searchAddress} className="mb-3 flex gap-2">
+            <div className="mb-3 flex gap-2">
               <div className="relative flex-1">
                 <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void searchAddress(event);
+                    }
+                  }}
                   placeholder="Search street, landmark or area"
                   className="field pl-9"
                   aria-label="Search address"
                 />
               </div>
-              <Button type="submit" variant="outline" disabled={searching}>
+              <Button type="button" variant="outline" onClick={searchAddress} disabled={searching}>
                 {searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                 Search
               </Button>
@@ -585,7 +592,7 @@ export default function ManualReport() {
                 {locating ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
                 <span className="hidden sm:inline">My location</span>
               </Button>
-            </form>
+            </div>
 
             {searchResults.length > 0 ? (
               <ul className="mb-3 divide-y divide-line overflow-hidden rounded-xl border border-line bg-white">
@@ -713,16 +720,16 @@ export default function ManualReport() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" disabled={uploading || submitting}>
-              Review report <ArrowRight size={15} />
+              Continue to review <ArrowRight size={15} />
             </Button>
             <Link
               to="/report/voice"
               className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[12px] font-semibold text-slate-600 hover:border-slate-300"
             >
-              <Camera size={14} /> Use voice instead
+              <Mic size={14} className="text-brand-600" /> Use voice instead
             </Link>
             <span className="text-[10.5px] text-slate-400">
-              <X size={11} className="mr-1 inline" /> Nothing is submitted until you confirm.
+              <Info size={11} className="mr-1 inline text-brand-600" /> Nothing is submitted until you confirm.
             </span>
           </div>
         </form>

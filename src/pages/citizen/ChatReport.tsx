@@ -133,8 +133,13 @@ export default function ChatReport() {
     } catch (caught) {
       const lower = text.toLowerCase();
       const match = RULES.find((entry) => entry.words.some((word) => lower.includes(word)));
+      const sentence = text.split(/[.!?]/)[0].trim();
+      const cleanTitle =
+        sentence.length > 80
+          ? (sentence.slice(0, sentence.lastIndexOf(" ", 80)).trim() || sentence.slice(0, 80))
+          : sentence;
       setDraft({
-        title: text.split(/[.!?]/)[0].slice(0, 80),
+        title: cleanTitle,
         description: text,
         category: match?.category ?? "other",
         severity: /(danger|accident|child|electric|fire|खतरा|ప్రమాదం)/i.test(text) ? "high" : "medium",
@@ -260,7 +265,7 @@ export default function ChatReport() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
+    <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6 pb-24 sm:pb-10">
       <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
         <ArrowLeft size={14} /> Back to home
       </Link>
@@ -333,7 +338,7 @@ export default function ChatReport() {
                 }}
                 rows={2}
                 placeholder="e.g. There is a large pothole outside the school gate and bikers keep falling."
-                className="field min-h-[44px] flex-1 resize-none py-2.5 text-[12px]"
+                className="field min-h-[52px] flex-1 resize-none py-2 leading-relaxed text-[12px]"
               />
               <Button type="submit" disabled={thinking || input.trim().length < 10}>
                 <Send size={15} />

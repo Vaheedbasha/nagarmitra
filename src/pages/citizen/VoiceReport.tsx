@@ -303,7 +303,7 @@ export default function VoiceReport() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl px-4 sm:px-6 py-5 pb-24 sm:pb-10">
       <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
         <ArrowLeft size={14} /> Back to home
       </Link>
