@@ -474,7 +474,7 @@ export default function ComplaintDetail() {
               complaints={complaints.filter((item) => item.id === complaint.id)}
               selectedId={complaint.id}
               showLegend={false}
-              className="h-[190px] rounded-none border-0"
+              className="h-[220px] rounded-none border-0"
             />
           </div>
 

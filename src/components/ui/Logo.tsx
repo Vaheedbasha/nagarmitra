@@ -9,12 +9,13 @@ interface LogoProps {
 }
 
 export function LogoMark({ size = "md", className }: { size?: "sm" | "md" | "lg"; className?: string }) {
-  const dim = size === "sm" ? 32 : size === "lg" ? 44 : 38;
-
   return (
     <div
-      className={cn("relative inline-flex flex-shrink-0 select-none overflow-hidden rounded-xl shadow-sm transition-transform duration-200 group-hover:scale-105", className)}
-      style={{ width: dim, height: dim }}
+      className={cn(
+        "relative inline-flex flex-shrink-0 select-none overflow-hidden rounded-xl shadow-sm transition-transform duration-200 group-hover:scale-105",
+        size === "sm" ? "h-8 w-8" : size === "lg" ? "h-11 w-11" : "h-8 w-8 sm:h-[38px] sm:w-[38px]",
+        className
+      )}
     >
       <img
         src="/nagarmitra-icon.png"
@@ -28,14 +29,14 @@ export function LogoMark({ size = "md", className }: { size?: "sm" | "md" | "lg"
 
 export function Logo({ to = "/", variant = "dark", size = "md", compact }: LogoProps) {
   const content = (
-    <span className="group flex items-center gap-2.5">
+    <span className="group flex items-center gap-1.5 sm:gap-2.5">
       <LogoMark size={size} />
       {!compact && (
         <span className="flex flex-col leading-none">
           <span
             className={cn(
               "font-display tracking-tight transition-colors",
-              size === "sm" ? "text-[16px]" : size === "lg" ? "text-[21px]" : "text-[18px]",
+              size === "sm" ? "text-[15px]" : size === "lg" ? "text-[21px]" : "text-[16px] sm:text-[18px]",
               variant === "dark" ? "text-slate-900 group-hover:text-brand-600" : "text-white"
             )}
           >
@@ -48,7 +49,7 @@ export function Logo({ to = "/", variant = "dark", size = "md", compact }: LogoP
           </span>
           <span
             className={cn(
-              "mt-0.5 text-[7.5px] font-bold uppercase tracking-[0.16em] hidden xs:block",
+              "mt-0.5 text-[7.5px] font-bold uppercase tracking-[0.16em] hidden sm:block",
               variant === "dark" ? "text-slate-400" : "text-brand-200/80"
             )}
           >

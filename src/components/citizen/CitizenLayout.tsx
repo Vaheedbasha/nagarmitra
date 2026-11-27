@@ -45,20 +45,20 @@ export function CitizenLayout() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col overflow-x-hidden bg-canvas">
+    <div className="flex min-h-screen w-full flex-col bg-canvas">
       <header className="sticky top-0 z-40 border-b border-line/80 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-0 items-center gap-2.5 sm:gap-6">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-1.5 px-2.5 sm:gap-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
             <Logo />
 
             <div className="relative flex shrink-0 items-center">
-              <span className="pointer-events-none absolute left-2 top-1/2 flex -translate-y-1/2 items-center text-brand-600">
-                <MapPin size={12} />
+              <span className="pointer-events-none absolute left-1.5 top-1/2 flex -translate-y-1/2 items-center text-brand-600 sm:left-2">
+                <MapPin size={10} />
               </span>
               <select
                 value={selectedCity}
                 onChange={(event) => setSelectedCity(event.target.value)}
-                className="h-8 cursor-pointer rounded-xl border border-line bg-white/95 pl-6 pr-2 py-0 text-[11px] font-bold text-slate-700 shadow-sm outline-none transition hover:border-brand-300 focus:border-brand-500"
+                className="h-8 max-w-[80px] cursor-pointer truncate rounded-xl border border-line bg-white/95 pl-4 pr-1.5 py-0.5 text-[10.5px] font-bold text-slate-700 shadow-sm outline-none transition hover:border-brand-300 focus:border-brand-500 sm:max-w-none sm:pl-6 sm:pr-2 sm:text-[11px]"
                 aria-label={t("city")}
               >
                 {CITIES.map((city) => (
@@ -139,7 +139,7 @@ export function CitizenLayout() {
             ) : (
               <Link
                 to="/login"
-                className="focus-ring inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
+                className="focus-ring inline-flex shrink-0 whitespace-nowrap items-center gap-1 rounded-xl bg-brand-600 px-2.5 py-1.5 text-[11px] sm:text-xs font-semibold text-white shadow-sm transition hover:bg-brand-700 active:scale-95"
               >
                 Sign in
               </Link>

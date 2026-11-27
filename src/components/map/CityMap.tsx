@@ -151,7 +151,7 @@ export function CityMap({
   return (
     <div
       className={cn(
-        "relative min-h-[320px] overflow-hidden rounded-2xl border border-line bg-[#EDF0F6]",
+        "relative isolate z-0 min-h-[320px] overflow-hidden rounded-2xl border border-line bg-[#EDF0F6]",
         className
       )}
     >
@@ -159,6 +159,7 @@ export function CityMap({
         center={[center.lat, center.lng]}
         zoom={13}
         scrollWheelZoom
+        attributionControl={false}
         className="h-full w-full"
         style={{ position: "absolute", inset: 0 }}
       >
@@ -227,13 +228,13 @@ export function CityMap({
       {children}
 
       {showLegend ? (
-        <div className="absolute bottom-3 left-3 z-[1000] rounded-xl border border-line bg-white/95 px-3 py-2 shadow-card backdrop-blur">
-          <p className="mb-1.5 text-[9px] font-bold uppercase tracking-wider text-slate-400">Priority</p>
-          <div className="flex items-center gap-2.5">
+        <div className="absolute bottom-2.5 left-2.5 z-[400] rounded-xl border border-line bg-white/95 px-2.5 py-1.5 shadow-card backdrop-blur sm:bottom-3 sm:left-3 sm:px-3 sm:py-2">
+          <p className="mb-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-400 sm:mb-1.5 sm:text-[9px]">Priority</p>
+          <div className="flex items-center gap-1.5 sm:gap-2.5">
             {(["low", "medium", "high", "critical"] as const).map((id) => {
               const meta = priorityMeta(id);
               return (
-                <span key={id} className="flex items-center gap-1 text-[10px] font-medium text-slate-600">
+                <span key={id} className="flex items-center gap-1 text-[9.5px] font-medium text-slate-600 sm:text-[10px]">
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: PRIORITY_HEX[id] }} />
                   {meta.label}
                 </span>
@@ -243,7 +244,7 @@ export function CityMap({
         </div>
       ) : null}
 
-      <span className="pointer-events-none absolute right-3 top-3 z-[1000] rounded-md bg-white/90 px-2 py-0.5 text-[9px] font-medium text-slate-500 shadow-sm backdrop-blur">
+      <span className="pointer-events-none absolute right-2.5 top-2.5 z-[400] rounded-md bg-white/90 px-2 py-0.5 text-[9px] font-medium text-slate-500 shadow-sm backdrop-blur sm:right-3 sm:top-3">
         Leaflet · OpenStreetMap
       </span>
     </div>

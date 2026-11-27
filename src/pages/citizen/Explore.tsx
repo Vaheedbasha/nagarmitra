@@ -171,7 +171,7 @@ export default function Explore() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by issue, street or complaint ID…"
+              placeholder="Search issues, streets or ID…"
               className="field pl-9 pr-9 text-xs sm:text-sm"
               aria-label="Search issues"
             />
@@ -209,7 +209,7 @@ export default function Explore() {
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as CategoryFilter)}
-              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               aria-label="Filter by category"
             >
               <option value="all">All categories (12)</option>
@@ -228,7 +228,7 @@ export default function Explore() {
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as StatusFilter)}
-              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="h-9 w-full rounded-xl border border-line bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-slate-700 outline-none transition focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               aria-label="Filter by status"
             >
               <option value="all">All statuses</option>
@@ -282,7 +282,7 @@ export default function Explore() {
             onSelect={setSelectedId}
             className="h-[330px] sm:h-[400px] lg:h-[460px]"
           >
-            <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-line bg-white/95 px-2.5 py-1.5 text-[10.5px] font-semibold text-slate-600 shadow-sm backdrop-blur">
+            <div className="pointer-events-none absolute left-14 top-3 z-10 flex items-center gap-1.5 rounded-lg border border-line bg-white/95 px-2.5 py-1.5 text-[10.5px] font-semibold text-slate-600 shadow-sm backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
               {filtered.length} issues mapped
             </div>
