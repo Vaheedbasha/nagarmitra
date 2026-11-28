@@ -153,6 +153,7 @@ export default function Register() {
                   className="field"
                   autoComplete="new-password"
                 />
+                <p className="mt-1 text-[10.5px] text-slate-400">{t("passwordHint")}</p>
               </div>
               <div>
                 <label htmlFor="confirm" className="field-label">
@@ -166,22 +167,6 @@ export default function Register() {
                   className="field"
                   autoComplete="new-password"
                 />
-              </div>
-              <div className="sm:col-span-2">
-                <label htmlFor="language" className="field-label">
-                  {t("preferredLanguage")}
-                </label>
-                <select
-                  id="language"
-                  value={form.language}
-                  onChange={(e) => update("language", e.target.value)}
-                  className="field"
-                >
-                  <option value="en">English</option>
-                  <option value="hi">हिंदी (Hindi)</option>
-                  <option value="te">తెలుగు (Telugu)</option>
-                </select>
-                <p className="mt-1 text-[10.5px] text-slate-400">{t("passwordHint")}</p>
               </div>
             </div>
 
