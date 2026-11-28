@@ -17,7 +17,7 @@ export default function Register() {
     name: "",
     email: "",
     phone: "",
-    city: "Riverton",
+    city: "Hyderabad",
     area: "",
     password: "",
     confirm: "",

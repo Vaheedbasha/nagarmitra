@@ -58,7 +58,7 @@ function Toggle({
 
 export default function AdminSettings() {
   const { toast } = useToast();
-  const [cityName, setCityName] = useState("Riverton Municipal Corporation");
+  const [cityName, setCityName] = useState("Greater Hyderabad Municipal Corporation (GHMC)");
   const [ward, setWard] = useState("All wards");
   const [sla, setSla] = useState("48");
   const [autoAssign, setAutoAssign] = useState(true);
@@ -66,7 +66,7 @@ export default function AdminSettings() {
   const [citizenUpdates, setCitizenUpdates] = useState(true);
   const [highPriorityAlerts, setHighPriorityAlerts] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(false);
-  const [email, setEmail] = useState("meera.shah@riverton.gov.demo");
+  const [email, setEmail] = useState("meera.shah@ghmc.gov.in");
 
   const save = () => {
     toast({
@@ -232,7 +232,7 @@ export default function AdminSettings() {
                 <p className="text-[13px] font-bold text-slate-900">{ADMIN_NAME}</p>
                 <p className="text-[10.5px] text-slate-500">City operations lead</p>
                 <p className="mt-0.5 truncate text-[10px] text-slate-400">
-                  meera.shah@riverton.gov.demo
+                  meera.shah@ghmc.gov.in
                 </p>
               </div>
             </div>

@@ -38,7 +38,7 @@ export default function Explore() {
     const q = query.trim().toLowerCase();
     const result = complaints.filter((complaint) => {
       // 1. Feed tab filtering
-      const city = complaint.city ?? "Riverton";
+      const city = complaint.city ?? "Hyderabad";
       if (feedTab === "your_city" && city !== selectedCity) return false;
       if (feedTab === "other_cities" && city === selectedCity) return false;
 

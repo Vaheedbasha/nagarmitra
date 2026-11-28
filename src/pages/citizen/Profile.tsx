@@ -2,9 +2,18 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Bell,
+  Check,
   ChevronRight,
+  KeyRound,
+  Languages,
   LayoutDashboard,
+  Loader2,
+  Lock,
+  Mail,
   MapPin,
+  Phone,
+  Save,
+  Settings,
   ShieldCheck,
   Sparkles,
   ThumbsUp,
@@ -35,6 +44,7 @@ function Toggle({
         <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{description}</p>
       </div>
       <button
+        type="button"
         role="switch"
         aria-checked={checked}
         aria-label={label}
@@ -57,8 +67,25 @@ function Toggle({
 
 export default function Profile() {
   const { toast } = useToast();
-  const { myComplaints } = useComplaints();
-  const { user } = useAuth();
+  const { myComplaints, cities, selectedCity, setSelectedCity } = useComplaints();
+  const { user, updateProfile, changePassword } = useAuth();
+
+  // Profile fields state
+  const [name, setName] = useState(user?.name ?? "");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [phone, setPhone] = useState(user?.phone ?? "");
+  const [city, setCity] = useState(user?.city || selectedCity || "Hyderabad");
+  const [area, setArea] = useState(user?.area || "");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+
+  // Notification settings state
   const [updates, setUpdates] = useState(true);
   const [nearby, setNearby] = useState(true);
   const [anonymous, setAnonymous] = useState(false);
@@ -66,20 +93,82 @@ export default function Profile() {
   const myReports = myComplaints.length;
   const resolved = myComplaints.filter((c) => c.status === "resolved").length;
   const upvotes = myComplaints.reduce((sum, c) => sum + c.upvotes, 0);
-  const displayName = user?.name ?? "Citizen";
-  const displayArea = user?.area || user?.ward || user?.city || "Riverton";
+  const displayName = name || user?.name || "Citizen";
+  const displayCity = user?.city || selectedCity || "Hyderabad";
+  const displayArea = area || user?.area || user?.ward || "Local Area";
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingProfile(true);
+    try {
+      await updateProfile({
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        city: city.trim(),
+        area: area.trim(),
+      });
+      if (city !== selectedCity) {
+        setSelectedCity(city);
+      }
+      toast({ title: "Profile settings saved", variant: "success" });
+    } catch (err: any) {
+      toast({
+        title: "Could not save profile",
+        description: err.message || "Try again",
+        variant: "error",
+      });
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      toast({ title: "Enter your current password", variant: "error" });
+      return;
+    }
+    if (newPassword.length < 8) {
+      toast({ title: "New password must be at least 8 characters", variant: "error" });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({ title: "Passwords do not match", variant: "error" });
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordOpen(false);
+      toast({ title: "Password updated successfully", variant: "success" });
+    } catch (err: any) {
+      toast({
+        title: "Password change failed",
+        description: err.message || "Please check your current password",
+        variant: "error",
+      });
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className="mx-auto max-w-3xl space-y-4 pb-12">
+      {/* Profile Header Card */}
       <div className="surface overflow-hidden">
         <div className="relative bg-brand-700 px-5 pb-12 pt-6">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full border-[32px] border-white/[0.06]" />
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-brand-200">
-            Citizen profile
+            Citizen Profile & Settings
           </p>
           <h1 className="mt-1 text-xl font-extrabold text-white">{displayName}</h1>
           <p className="mt-0.5 flex items-center gap-1.5 text-[11.5px] text-brand-100">
-            <MapPin size={12} /> {displayArea} · {user?.city ?? "Riverton"}
+            <MapPin size={12} /> {displayArea} · {displayCity}
           </p>
         </div>
         <div className="relative px-5 pb-5">
@@ -89,17 +178,18 @@ export default function Profile() {
                 .split(" ")
                 .map((part) => part[0])
                 .slice(0, 2)
-                .join("")}
+                .join("")
+                .toUpperCase()}
             </div>
             <span className="mb-1 inline-flex items-center gap-1 rounded-full border border-accent-100 bg-accent-50 px-2.5 py-1 text-[10px] font-bold text-accent-700">
-              <ShieldCheck size={11} /> Verified citizen
+              <ShieldCheck size={11} /> Verified Citizen
             </span>
           </div>
 
           <div className="mt-3 grid grid-cols-3 divide-x divide-line rounded-xl border border-line bg-slate-50/50">
             {[
-              { label: "Reports", value: myReports, icon: User },
-              { label: "City upvotes", value: upvotes, icon: ThumbsUp },
+              { label: "My Reports", value: myReports, icon: User },
+              { label: "Confirmations", value: upvotes, icon: ThumbsUp },
               { label: "Resolved", value: resolved, icon: Trophy },
             ].map((stat) => (
               <div key={stat.label} className="flex flex-col items-center gap-0.5 py-3">
@@ -113,97 +203,220 @@ export default function Profile() {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Simple Profile Settings Form */}
         <div className="surface p-4 sm:p-5">
-          <div className="mb-2 flex items-center gap-2">
+          <div className="mb-3 flex items-center gap-2 border-b border-line pb-2.5">
             <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
-              <Bell size={14} />
+              <Settings size={15} />
             </span>
-            <h2 className="text-[13.5px] font-bold">Notifications</h2>
+            <div>
+              <h2 className="text-[13.5px] font-bold text-slate-800">Personal Details</h2>
+              <p className="text-[10.5px] text-slate-400">Update your account information</p>
+            </div>
           </div>
-          <div className="divide-y divide-line">
-            <Toggle
-              checked={updates}
-              onChange={setUpdates}
-              label="Status updates"
-              description="Get notified when one of your reports changes status."
-            />
-            <Toggle
-              checked={nearby}
-              onChange={setNearby}
-              label="Nearby issues"
-              description="Weekly digest of issues reported around Ward 4."
-            />
-            <Toggle
-              checked={anonymous}
-              onChange={setAnonymous}
-              label="Report anonymously"
-              description="Hide your name from public complaint views by default."
-            />
-          </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="mt-3 w-full"
-            onClick={() =>
-              toast({
-                title: "Preferences saved",
-                description: "Demo settings stored locally for this session.",
-                variant: "success",
-              })
-            }
-          >
-            Save preferences
-          </Button>
+
+          <form onSubmit={handleSaveProfile} className="space-y-3">
+            <div>
+              <label htmlFor="profile-name" className="field-label">Full Name</label>
+              <div className="relative">
+                <input
+                  id="profile-name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="field text-xs pl-8"
+                  placeholder="Your full name"
+                  required
+                />
+                <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="profile-phone" className="field-label">Phone Number</label>
+              <div className="relative">
+                <input
+                  id="profile-phone"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="field text-xs pl-8"
+                  placeholder="9876543210"
+                  required
+                />
+                <Phone size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="profile-email" className="field-label">Email Address</label>
+              <div className="relative">
+                <input
+                  id="profile-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="field text-xs pl-8"
+                  placeholder="citizen@example.com"
+                  required
+                />
+                <Mail size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label htmlFor="profile-city" className="field-label">Home City</label>
+                <select
+                  id="profile-city"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="field text-xs"
+                >
+                  {cities.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor="profile-area" className="field-label">Area / Ward</label>
+                <input
+                  id="profile-area"
+                  type="text"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value)}
+                  className="field text-xs"
+                  placeholder="e.g. Banjara Hills"
+                />
+              </div>
+            </div>
+
+            <Button type="submit" size="sm" className="w-full mt-2" disabled={savingProfile}>
+              {savingProfile ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+              <span>{savingProfile ? "Saving…" : "Save Profile Details"}</span>
+            </Button>
+          </form>
         </div>
 
-        <div className="space-y-3">
+        {/* Preferences & Security Column */}
+        <div className="space-y-4">
+          {/* Notifications Settings */}
           <div className="surface p-4 sm:p-5">
-            <div className="mb-3 flex items-center gap-2">
-              <span className="rounded-lg bg-accent-50 p-1.5 text-accent-600">
-                <Sparkles size={14} />
+            <div className="mb-2 flex items-center gap-2 border-b border-line pb-2.5">
+              <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
+                <Bell size={15} />
               </span>
-              <h2 className="text-[13.5px] font-bold">Your civic impact</h2>
+              <div>
+                <h2 className="text-[13.5px] font-bold text-slate-800">Alerts & Privacy</h2>
+                <p className="text-[10.5px] text-slate-400">Manage communication preferences</p>
+              </div>
             </div>
-            <ul className="space-y-2.5">
-              {[
-                "3 of your reports were resolved this month",
-                "Your pothole report was confirmed 34 times",
-                "You're in the top 10% of Ward 4 reporters",
-              ].map((item) => (
-                <li key={item} className="flex gap-2 text-[11.5px] leading-relaxed text-slate-600">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent-500" />
-                  {item}
-                </li>
-              ))}
-            </ul>
+
+            <div className="divide-y divide-line">
+              <Toggle
+                checked={updates}
+                onChange={setUpdates}
+                label="Status Notifications"
+                description="Get notified when officials update your submitted reports."
+              />
+              <Toggle
+                checked={nearby}
+                onChange={setNearby}
+                label="Nearby Civic Alerts"
+                description="Digest of high-priority community issues in your ward."
+              />
+              <Toggle
+                checked={anonymous}
+                onChange={setAnonymous}
+                label="Report Anonymously"
+                description="Hide your name from public complaint feeds by default."
+              />
+            </div>
+
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3 w-full"
+              onClick={() =>
+                toast({
+                  title: "Preferences saved",
+                  description: "Your notification settings have been updated.",
+                  variant: "success",
+                })
+              }
+            >
+              Update Preferences
+            </Button>
           </div>
 
-          <Link
-            to="/admin"
-            className="group surface surface-hover flex items-center gap-3 p-4"
-          >
-            <span className="rounded-xl bg-slate-900 p-2.5 text-white">
-              <LayoutDashboard size={17} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[12.5px] font-bold text-slate-900">Admin demo</p>
-              <p className="text-[10.5px] text-slate-500">
-                Open the municipal operations dashboard.
-              </p>
+          {/* Change Password Card */}
+          <div className="surface p-4 sm:p-5">
+            <div className="flex items-center justify-between border-b border-line pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="rounded-lg bg-amber-50 p-1.5 text-amber-600">
+                  <KeyRound size={15} />
+                </span>
+                <div>
+                  <h2 className="text-[13.5px] font-bold text-slate-800">Password & Security</h2>
+                  <p className="text-[10.5px] text-slate-400">Keep your account protected</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPasswordOpen(!passwordOpen)}
+                className="text-xs font-semibold text-brand-600 hover:underline"
+              >
+                {passwordOpen ? "Cancel" : "Change"}
+              </button>
             </div>
-            <ChevronRight
-              size={16}
-              className="text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-brand-500"
-            />
-          </Link>
 
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3">
-            <p className="text-[11px] font-semibold text-amber-800">Phase 1 prototype</p>
-            <p className="mt-0.5 text-[10.5px] leading-relaxed text-amber-700/80">
-              Accounts, notifications and verification are simulated. No personal data leaves
-              this browser.
-            </p>
+            {passwordOpen ? (
+              <form onSubmit={handleChangePassword} className="mt-3 space-y-2.5 animate-scale-in">
+                <div>
+                  <label htmlFor="current-pw" className="field-label">Current Password</label>
+                  <input
+                    id="current-pw"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    className="field text-xs"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-pw" className="field-label">New Password (8+ characters)</label>
+                  <input
+                    id="new-pw"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="field text-xs"
+                    required
+                  />
+                </div>
+                <div>
+                  <label htmlFor="confirm-pw" className="field-label">Confirm New Password</label>
+                  <input
+                    id="confirm-pw"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="field text-xs"
+                    required
+                  />
+                </div>
+                <Button type="submit" size="sm" className="w-full mt-2" disabled={savingPassword}>
+                  {savingPassword ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />}
+                  <span>{savingPassword ? "Updating…" : "Update Password"}</span>
+                </Button>
+              </form>
+            ) : (
+              <p className="mt-2.5 text-[11px] text-slate-500 leading-relaxed">
+                Password is encrypted. Click &quot;Change&quot; above to set a new password.
+              </p>
+            )}
           </div>
         </div>
       </div>

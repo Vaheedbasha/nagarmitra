@@ -100,7 +100,7 @@ export default function AdminComplaints() {
       escapeCsv(c.status),
       escapeCsv(c.priority),
       c.score,
-      escapeCsv(c.city || "Riverton"),
+      escapeCsv(c.city || "Hyderabad"),
       escapeCsv(c.location),
       escapeCsv(c.area),
       escapeCsv(c.date),

@@ -1,4 +1,4 @@
-export const CITY_NAME = "Riverton";
+export const CITY_NAME = "Hyderabad";
 
 export const OVERVIEW_STATS = {
   total: 1248,

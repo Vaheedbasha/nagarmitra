@@ -968,22 +968,6 @@ export default function ChatReport() {
                   ) : null}
                 </div>
 
-                {/* Dictation Mic Button */}
-                <button
-                  type="button"
-                  onClick={toggleMic}
-                  className={cn(
-                    "focus-ring flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border transition",
-                    listening
-                      ? "border-red-300 bg-red-50 text-red-600 shadow-sm animate-pulse"
-                      : "border-line text-slate-500 hover:border-slate-300"
-                  )}
-                  aria-label={listening ? "Stop voice dictation" : "Dictate with voice"}
-                  title="Voice to text dictation"
-                >
-                  <Mic size={16} />
-                </button>
-
                 {/* Chat Input Field */}
                 <textarea
                   value={input}

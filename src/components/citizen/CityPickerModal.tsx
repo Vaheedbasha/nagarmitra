@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { Check, MapPin, Plus, Search, X } from "lucide-react";
+import { Check, Loader2, MapPin, Navigation, Plus, Search, X } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
+import { useToast } from "@/store/ToastContext";
+import { getCurrentPosition, reverseGeocode } from "@/lib/location";
 
 interface CityPickerModalProps {
   open: boolean;
@@ -9,7 +11,9 @@ interface CityPickerModalProps {
 
 export function CityPickerModal({ open, onClose }: CityPickerModalProps) {
   const { cities, selectedCity, setSelectedCity, addCustomCity } = useComplaints();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
+  const [detectingGps, setDetectingGps] = useState(false);
 
   const filteredCities = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -37,6 +41,35 @@ export function CityPickerModal({ open, onClose }: CityPickerModalProps) {
     }
   };
 
+  const handleAutoDetectLocation = async () => {
+    setDetectingGps(true);
+    try {
+      const pos = await getCurrentPosition();
+      const geo = await reverseGeocode(pos.lat, pos.lng);
+      const detectedCity = geo.city || geo.suburb;
+      if (detectedCity) {
+        const matched = cities.find((c) => c.toLowerCase() === detectedCity.toLowerCase());
+        if (matched) {
+          setSelectedCity(matched);
+          toast({ title: "City detected", description: matched, variant: "success" });
+        } else {
+          addCustomCity(detectedCity);
+        }
+        onClose();
+      } else {
+        toast({ title: "Could not identify city from GPS coordinates", variant: "error" });
+      }
+    } catch (err: any) {
+      toast({
+        title: "GPS location error",
+        description: err.message || "Please allow location access in your browser.",
+        variant: "error",
+      });
+    } finally {
+      setDetectingGps(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-fade-in">
       <div className="flex flex-col w-full max-w-sm max-h-[85vh] rounded-3xl border border-line bg-white shadow-2xl overflow-hidden animate-scale-in">
@@ -58,6 +91,23 @@ export function CityPickerModal({ open, onClose }: CityPickerModalProps) {
             aria-label="Close"
           >
             <X size={18} />
+          </button>
+        </div>
+
+        {/* GPS Live Location Auto-Detect Button */}
+        <div className="p-3 bg-brand-50/50 border-b border-line">
+          <button
+            type="button"
+            onClick={handleAutoDetectLocation}
+            disabled={detectingGps}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white border border-brand-200 py-2.5 px-3 text-xs font-bold text-brand-700 shadow-xs hover:bg-brand-50 transition active:scale-98"
+          >
+            {detectingGps ? (
+              <Loader2 size={15} className="animate-spin text-brand-600" />
+            ) : (
+              <Navigation size={15} className="text-brand-600" />
+            )}
+            <span>{detectingGps ? "Detecting GPS location…" : "Auto-Detect My City via GPS"}</span>
           </button>
         </div>
 

@@ -166,6 +166,11 @@ CREATE INDEX IF NOT EXISTS idx_timeline_complaint ON timeline(complaint_id, seq)
 CREATE INDEX IF NOT EXISTS idx_comments_complaint ON comments(complaint_id);
 CREATE INDEX IF NOT EXISTS idx_media_complaint ON media(complaint_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at DESC);
+
+-- Automatic migration to real Indian cities
+UPDATE complaints SET city = 'Hyderabad' WHERE city = 'Riverton' OR city IS NULL;
+UPDATE users SET city = 'Hyderabad' WHERE city = 'Riverton' OR city IS NULL;
+UPDATE users SET organisation = 'Greater Hyderabad Municipal Corporation (GHMC)' WHERE organisation LIKE '%Riverton%';
 `);
 }
 

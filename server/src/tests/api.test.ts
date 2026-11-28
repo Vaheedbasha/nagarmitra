@@ -104,7 +104,7 @@ test("citizen registration creates a citizen session", async () => {
       email: `citizen-${Date.now()}@example.com`,
       phone: `7${Date.now().toString().slice(-9)}`,
       password: "Testing12345",
-      city: "Riverton",
+      city: "Hyderabad",
     },
   });
   assert.equal(response.status, 201);
@@ -144,7 +144,7 @@ test("complaint creation persists and returns an identifier", async () => {
       category: "drainage",
       severity: "high",
       location: "School Road, Ward 4",
-      city: "Riverton",
+      city: "Hyderabad",
       lat: 17.4021,
       lng: 78.4702,
     },

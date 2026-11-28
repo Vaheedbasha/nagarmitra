@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, TileLayer, Tooltip, Circle, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getCityCoordinates } from "@/lib/location";
 import { categoryMeta, priorityMeta } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import type { Complaint } from "@/types";
@@ -25,11 +26,7 @@ interface CityMapProps {
   autoFit?: boolean;
 }
 
-const CITY_CENTERS: Record<string, LatLng> = {
-  Riverton: { lat: 17.4, lng: 78.47 },
-  "Metro Heights": { lat: 17.47, lng: 78.38 },
-  "Bay City": { lat: 17.34, lng: 78.56 },
-};
+const DEFAULT_CENTER: LatLng = { lat: 17.385, lng: 78.4867 };
 
 const TILE_URL =
   (import.meta.env.VITE_MAP_TILE_URL as string | undefined) ??
@@ -142,8 +139,8 @@ export function CityMap({
       const lng = complaints.reduce((sum, item) => sum + item.lng, 0) / complaints.length;
       return { lat, lng };
     }
-    const city = complaints[0]?.city ?? "Riverton";
-    return CITY_CENTERS[city] ?? CITY_CENTERS.Riverton;
+    const city = complaints[0]?.city ?? "Hyderabad";
+    return getCityCoordinates(city);
   }, [complaints, pin]);
 
   const selected = complaints.find((item) => item.id === selectedId);

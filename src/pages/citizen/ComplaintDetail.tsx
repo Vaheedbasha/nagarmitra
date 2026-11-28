@@ -10,6 +10,7 @@ import {
   ExternalLink,
   MapPin,
   MessageSquare,
+  Navigation,
   Send,
   Share2,
   ShieldCheck,
@@ -18,6 +19,7 @@ import {
   User,
 } from "lucide-react";
 import { useComplaint, useComplaints } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
 import { useToast } from "@/store/ToastContext";
 import { PriorityScorePanel } from "@/components/complaint/PriorityScore";
 import { StatusTimeline } from "@/components/complaint/StatusTimeline";
@@ -33,8 +35,15 @@ export default function ComplaintDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { upvote, complaints, addComment } = useComplaints();
+  const { upvote, complaints, myComplaints, addComment } = useComplaints();
+  const { user } = useAuth();
   const complaint = useComplaint(id);
+
+  const isOwnReport = Boolean(
+    complaint?.isMine ||
+    (id && myComplaints.some((c) => c.id === id)) ||
+    (user && complaint?.reporterId && complaint.reporterId === user.id)
+  );
 
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
@@ -243,23 +252,37 @@ export default function ComplaintDetail() {
             <div className="border-t border-line/80 bg-slate-50/70 px-3 py-2.5 sm:px-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Confirm Issue / Upvote */}
-                  <button
-                    onClick={handleConfirm}
-                    className={cn(
-                      "focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-semibold shadow-sm transition active:scale-95",
-                      hasConfirmed
-                        ? "border-brand-300 bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                        : "border-line bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600"
-                    )}
-                    title="Confirm you have seen or face this issue"
-                  >
-                    <ThumbsUp size={14} className={hasConfirmed ? "fill-brand-600 text-brand-600" : ""} />
-                    <span>{hasConfirmed ? "Confirmed" : "Confirm issue"}</span>
-                    <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-slate-600">
-                      {complaint.upvotes}
-                    </span>
-                  </button>
+                  {/* Confirm Issue / Upvote (Disabled/Hidden for Own Reports) */}
+                  {isOwnReport ? (
+                    <div
+                      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50/70 px-3 text-[12px] font-semibold text-brand-700"
+                      title="You reported this complaint. Community members can verify and confirm."
+                    >
+                      <Check size={14} className="text-brand-600" />
+                      <span>Your Report</span>
+                      <span className="rounded-md bg-brand-100/80 px-1.5 py-0.5 font-mono text-[10.5px] text-brand-800">
+                        {complaint.upvotes}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={handleConfirm}
+                      disabled={hasConfirmed}
+                      className={cn(
+                        "focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border px-3 text-[12px] font-semibold shadow-sm transition active:scale-95",
+                        hasConfirmed
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 cursor-default"
+                          : "border-line bg-white text-slate-700 hover:border-brand-300 hover:text-brand-600"
+                      )}
+                      title={hasConfirmed ? "You confirmed this issue" : "Confirm you have seen or face this issue"}
+                    >
+                      <ThumbsUp size={14} className={hasConfirmed ? "fill-emerald-600 text-emerald-600" : ""} />
+                      <span>{hasConfirmed ? "Confirmed" : "Confirm issue"}</span>
+                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10.5px] text-slate-600">
+                        {complaint.upvotes}
+                      </span>
+                    </button>
+                  )}
 
                   {/* Comments button */}
                   <button
@@ -476,6 +499,27 @@ export default function ComplaintDetail() {
               showLegend={false}
               className="h-[220px] rounded-none border-0"
             />
+            {complaint.lat && complaint.lng ? (
+              <div className="p-3 border-t border-line bg-slate-50/70 flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-[10px] text-slate-400 font-medium">GPS Coordinates</p>
+                  <p className="text-[11px] font-mono font-semibold text-slate-700">
+                    {complaint.lat.toFixed(4)}, {complaint.lng.toFixed(4)}
+                  </p>
+                </div>
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${complaint.lat},${complaint.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition active:scale-95"
+                  title="Open turn-by-turn directions in Google Maps"
+                >
+                  <Navigation size={13} />
+                  <span>Google Maps Directions</span>
+                  <ExternalLink size={11} className="opacity-70" />
+                </a>
+              </div>
+            ) : null}
           </div>
 
           <Link

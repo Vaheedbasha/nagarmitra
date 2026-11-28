@@ -56,11 +56,7 @@ interface GeocodeResult {
   lng: number;
 }
 
-const CITY_CENTERS: Record<string, { lat: number; lng: number }> = {
-  Riverton: { lat: 17.4, lng: 78.47 },
-  "Metro Heights": { lat: 17.47, lng: 78.38 },
-  "Bay City": { lat: 17.34, lng: 78.56 },
-};
+
 
 async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   try {

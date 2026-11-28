@@ -70,7 +70,7 @@ export default function AdminComplaintDetail() {
 
   // Escalation modal state
   const [isEscalateOpen, setIsEscalateOpen] = useState(false);
-  const [authorityTag, setAuthorityTag] = useState("@RivertonRoads");
+  const [authorityTag, setAuthorityTag] = useState("@GHMCRoads");
   const [escalationSla, setEscalationSla] = useState("Urgent 24hr");
   const [escalationNote, setEscalationNote] = useState("");
 
@@ -483,11 +483,11 @@ export default function AdminComplaintDetail() {
                   onChange={(e) => setAuthorityTag(e.target.value)}
                   className="field mt-1 min-h-[40px] py-1.5 text-xs"
                 >
-                  <option value="@RivertonRoads">@RivertonRoads · Roads, Potholes & Footpaths</option>
+                  <option value="@GHMCRoads">@GHMCRoads · Roads, Potholes & Footpaths</option>
                   <option value="@WaterBoard">@WaterBoard · Water Supply & Leakages</option>
                   <option value="@CityDrainage">@CityDrainage · Drainage, Flooding & Culverts</option>
                   <option value="@CityElectricityDept">@CityElectricityDept · Power & Streetlights</option>
-                  <option value="@RivertonSanitation">@RivertonSanitation · Solid Waste & Dumps</option>
+                  <option value="@GHMCSanitation">@GHMCSanitation · Solid Waste & Dumps</option>
                   <option value="@TrafficPolice">@TrafficPolice · Traffic Signals & Obstructions</option>
                 </select>
               </div>

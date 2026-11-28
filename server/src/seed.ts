@@ -66,7 +66,7 @@ export function seedDatabase() {
   transaction(() => {
     execute(
       `INSERT INTO users (id, name, email, phone, password_hash, role, official_status, city, language, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'admin', 'approved', 'Riverton', 'en', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'admin', 'approved', 'Hyderabad', 'en', ?, ?)`,
       [
         "user-admin",
         "Meera Shah",
@@ -81,7 +81,7 @@ export function seedDatabase() {
     DEMO_CITIZENS.forEach((citizen, index) => {
       execute(
         `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, 'citizen', 'Riverton', ?, 'en', ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, 'citizen', 'Hyderabad', ?, 'en', ?, ?)`,
         [
           `user-citizen-${index + 1}`,
           citizen.name,
@@ -97,7 +97,7 @@ export function seedDatabase() {
 
     execute(
       `INSERT INTO users (id, name, email, phone, password_hash, role, official_status, department, designation, ward, organisation, city, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'official', 'approved', 'Roads & Public Works', 'Ward Engineer', 'Ward 4', 'Riverton Municipal Corporation', 'Riverton', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'official', 'approved', 'Roads & Public Works', 'Ward Engineer', 'Ward 4', 'Greater Hyderabad Municipal Corporation (GHMC)', 'Hyderabad', ?, ?)`,
       [
         "user-official-1",
         "Arjun Desai",
@@ -111,7 +111,7 @@ export function seedDatabase() {
 
     execute(
       `INSERT INTO users (id, name, email, phone, password_hash, role, official_status, department, designation, ward, organisation, city, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'official', 'pending', 'Water Supply', 'Assistant Engineer', 'Ward 2', 'Riverton Municipal Corporation', 'Riverton', ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'official', 'pending', 'Water Supply', 'Assistant Engineer', 'Ward 2', 'Greater Hyderabad Municipal Corporation (GHMC)', 'Hyderabad', ?, ?)`,
       [
         "user-official-pending",
         "Nandini Rao",
@@ -150,7 +150,7 @@ export function seedDatabase() {
             row.location,
             row.area,
             row.ward ?? null,
-            row.city ?? "Riverton",
+            row.city ?? "Hyderabad",
             reporterId,
             row.photo ?? null,
             JSON.stringify(row.why ?? []),

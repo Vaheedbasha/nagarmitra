@@ -19,7 +19,7 @@ export default function OfficialRegister() {
     designation: "",
     ward: "",
     organisation: "",
-    city: "Riverton",
+    city: "Hyderabad",
     password: "",
     confirm: "",
   });
@@ -135,7 +135,7 @@ export default function OfficialRegister() {
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="organisation" className="field-label">{t("organisation")}</label>
-              <input id="organisation" value={form.organisation} onChange={(e) => update("organisation", e.target.value)} className="field" placeholder="Riverton Municipal Corporation" />
+              <input id="organisation" value={form.organisation} onChange={(e) => update("organisation", e.target.value)} className="field" placeholder="Greater Hyderabad Municipal Corporation (GHMC)" />
             </div>
             <div>
               <label htmlFor="password" className="field-label">{t("password")} *</label>

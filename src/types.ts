@@ -82,6 +82,7 @@ export interface Complaint {
   media?: MediaRef[];
   audio?: string;
   reporter: Reporter;
+  reporterId?: string;
   lat: number;
   lng: number;
   upvotes: number;

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { CalendarDays, ChevronRight, MapPin, MessageSquare, Share2, ThumbsUp } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, ExternalLink, MapPin, MessageSquare, Navigation, Share2, ThumbsUp } from "lucide-react";
 import { StatusChip, PriorityChip } from "@/components/ui/Badge";
 import { useComplaints } from "@/store/ComplaintsContext";
+import { useAuth } from "@/store/AuthContext";
 import { useToast } from "@/store/ToastContext";
 import { categoryMeta } from "@/lib/constants";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
@@ -17,9 +18,16 @@ export function ComplaintCard({
   className?: string;
   showUpdate?: boolean;
 }) {
-  const { upvote } = useComplaints();
+  const { upvote, myComplaints } = useComplaints();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [hasConfirmed, setHasConfirmed] = useState(false);
+
+  const isOwnReport = Boolean(
+    complaint.isMine ||
+    myComplaints.some((c) => c.id === complaint.id) ||
+    (user && complaint.reporterId && complaint.reporterId === user.id)
+  );
 
   const category = categoryMeta(complaint.category);
   const Icon = category.icon;
@@ -29,10 +37,11 @@ export function ComplaintCard({
   const handleConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (isOwnReport) return;
     upvote(complaint.id);
     setHasConfirmed(true);
     toast({
-      title: "Confirmed! 👍",
+      title: "Confirmed",
       description: `You verified this issue. Total confirmations: ${complaint.upvotes + 1}`,
       variant: "success",
     });
@@ -45,7 +54,7 @@ export function ComplaintCard({
     const reportUrl = `${window.location.origin}/reports/${complaint.id}`;
     const shareData = {
       title: `Civic Alert: ${complaint.title}`,
-      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Track progress on NagarMitra:`,
+      text: `Civic Alert in ${complaint.location}: "${complaint.title}". Track progress on NagarMitra:`,
       url: reportUrl,
     };
 
@@ -130,38 +139,64 @@ export function ComplaintCard({
       </div>
 
       {/* Social Post Action Footer */}
-      <div className="flex items-center justify-between border-t border-line/60 pt-2 text-[11.5px] text-slate-600">
-        <button
-          onClick={handleConfirm}
-          className={cn(
-            "focus-ring inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold transition active:scale-95",
-            hasConfirmed
-              ? "bg-brand-50 text-brand-700 font-bold"
-              : "hover:bg-slate-100 hover:text-slate-900"
-          )}
-          title="Confirm / verify this report"
-        >
-          <ThumbsUp size={13} className={hasConfirmed ? "fill-brand-600 text-brand-600" : "text-slate-400"} />
-          <span>{hasConfirmed ? "Confirmed" : "Confirm"}</span>
-          <span className="font-mono text-[10px] text-slate-500">({complaint.upvotes})</span>
-        </button>
+      <div className="flex items-center justify-between gap-1 border-t border-line/60 pt-2 text-[11.5px] text-slate-600">
+        {isOwnReport ? (
+          <span
+            className="inline-flex items-center gap-1 rounded-lg bg-brand-50/80 px-2 py-1 font-semibold text-brand-700 text-[11px]"
+            title="You reported this issue"
+          >
+            <Check size={12} className="text-brand-600" />
+            <span>Your Report</span>
+            <span className="font-mono text-[10px] text-brand-600">({complaint.upvotes})</span>
+          </span>
+        ) : (
+          <button
+            onClick={handleConfirm}
+            disabled={hasConfirmed}
+            className={cn(
+              "focus-ring inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold transition active:scale-95",
+              hasConfirmed
+                ? "bg-emerald-50 text-emerald-700 font-bold cursor-default"
+                : "hover:bg-slate-100 hover:text-slate-900"
+            )}
+            title="Confirm / verify this report"
+          >
+            <ThumbsUp size={13} className={hasConfirmed ? "fill-emerald-600 text-emerald-600" : "text-slate-400"} />
+            <span>{hasConfirmed ? "Confirmed" : "Confirm"}</span>
+            <span className="font-mono text-[10px] text-slate-500">({complaint.upvotes})</span>
+          </button>
+        )}
+
+        {/* Google Maps Directions */}
+        {complaint.lat && complaint.lng ? (
+          <a
+            href={`https://www.google.com/maps/dir/?api=1&destination=${complaint.lat},${complaint.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 font-semibold text-emerald-700 hover:bg-emerald-50 transition"
+            title="Open turn-by-turn directions in Google Maps"
+          >
+            <Navigation size={12} className="text-emerald-600" />
+            <span className="text-[10.5px]">Directions</span>
+          </a>
+        ) : null}
 
         <span
-          className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-slate-500"
+          className="hidden sm:inline-flex items-center gap-1 rounded-lg px-2 py-1 text-slate-500"
           title="Comments on this issue"
         >
           <MessageSquare size={13} className="text-slate-400" />
           <span>{complaint.comments?.length ?? 0}</span>
-          <span className="hidden xs:inline text-[10.5px]">comments</span>
         </span>
 
         <button
           onClick={handleShare}
-          className="focus-ring inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-brand-600 active:scale-95"
+          className="focus-ring inline-flex items-center gap-1 rounded-lg px-2 py-1 font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-brand-600 active:scale-95"
           title="Share across social apps"
         >
           <Share2 size={13} className="text-slate-400" />
-          <span>Share</span>
+          <span className="hidden sm:inline">Share</span>
         </button>
 
         <span className="flex items-center gap-0.5 text-[10.5px] text-slate-400">

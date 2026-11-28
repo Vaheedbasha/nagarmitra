@@ -56,7 +56,7 @@ authRouter.post("/register", (req, res) => {
   const email = text(req.body?.email, 160).toLowerCase();
   const phone = normalisePhone(text(req.body?.phone, 24));
   const password = text(req.body?.password, 200);
-  const city = text(req.body?.city, 80) || "Riverton";
+  const city = text(req.body?.city, 80) || "Hyderabad";
   const area = text(req.body?.area, 120);
   const language = LANGS.includes(text(req.body?.language, 2)) ? text(req.body?.language, 2) : "en";
 
@@ -93,7 +93,7 @@ authRouter.post("/register-official", (req, res) => {
   const designation = text(req.body?.designation, 120);
   const ward = text(req.body?.ward, 80);
   const organisation = text(req.body?.organisation, 160);
-  const city = text(req.body?.city, 80) || "Riverton";
+  const city = text(req.body?.city, 80) || "Hyderabad";
 
   if (name.length < 2) return bad(res, 400, "Please enter your full name.");
   if (!isEmail(email)) return bad(res, 400, "Please enter a valid official email address.");

@@ -159,7 +159,7 @@ export function CitizenLayout() {
         className={cn(
           "w-full max-w-full flex-1 overflow-x-hidden",
           isChatRoute
-            ? "flex min-h-0 flex-col p-0 pb-20 md:pb-0"
+            ? "mx-auto w-full max-w-5xl px-3 pt-3 pb-24 sm:px-6 sm:pt-5 sm:pb-8 md:pb-6"
             : "mx-auto w-full max-w-6xl px-4 pb-28 pt-5 sm:px-6 sm:pt-7 md:pb-14 lg:px-8"
         )}
       >
