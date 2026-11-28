@@ -42,9 +42,9 @@ export function Modal({
   const widths = { sm: "max-w-md", md: "max-w-xl", lg: "max-w-3xl" };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4">
       <div
-        className="absolute inset-0 bg-slate-900/40 backdrop-blur-[2px] animate-fade-in"
+        className="absolute inset-0 bg-slate-900/50 backdrop-blur-[2px] animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
@@ -53,10 +53,8 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative w-full animate-fade-up overflow-hidden bg-white shadow-pop",
-          side
-            ? "h-full max-w-md rounded-none sm:h-[calc(100%-3rem)] sm:rounded-2xl"
-            : cn("rounded-t-2xl sm:rounded-2xl", widths[size])
+          "relative w-full max-h-[90vh] overflow-y-auto animate-fade-up rounded-2xl bg-white shadow-pop",
+          widths[size]
         )}
       >
         {(title || description) && (

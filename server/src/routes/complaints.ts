@@ -11,7 +11,7 @@ import { audit, serializeComplaint, type ComplaintRow } from "../serialize.js";
 import { CATEGORY_IDS, canonicalCategory, type StatusId } from "../types.js";
 import { bad, parseNumber, queryString, text } from "../validate.js";
 import { explainScore, factorsForSeverity, priorityFromScore, scoreFromFactors } from "../priority.js";
-import { isCloudConfigured, queueCloudSync, saveMediaToCloud } from "../cloud-storage.js";
+import { isCloudConfigured, queueCloudSync, saveMediaToCloud, syncCloudDatabase, refreshIfNewer } from "../cloud-storage.js";
 
 export const complaintRouter = Router();
 
@@ -38,7 +38,14 @@ function canSeeComplaint(id: string) {
 }
 
 /** Lists complaints with filters. Reporter identity is never included. */
-complaintRouter.get("/", optionalAuth, (req, res) => {
+complaintRouter.get("/", optionalAuth, async (req, res) => {
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[complaints] cloud refresh error:", e);
+    }
+  }
   const city = queryString(req, "city");
   const category = queryString(req, "category");
   const status = queryString(req, "status");
@@ -127,13 +134,21 @@ complaintRouter.get("/stats", (req, res) => {
   });
 });
 
-complaintRouter.get("/:id", optionalAuth, (req, res) => {
-  const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
+complaintRouter.get("/:id", optionalAuth, async (req, res) => {
+  let row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
+  if (!row && isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+      row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
+    } catch (e) {
+      console.warn("[complaints] single get refresh error:", e);
+    }
+  }
   if (!row) return bad(res, 404, "Complaint not found");
   res.json({ complaint: serializeComplaint(row, req.user?.id) });
 });
 
-complaintRouter.post("/", requireAuth, (req, res) => {
+complaintRouter.post("/", requireAuth, async (req, res) => {
   const body = req.body ?? {};
   const title = text(body.title, 120);
   const description = text(body.description, 4000);
@@ -252,11 +267,19 @@ complaintRouter.post("/", requireAuth, (req, res) => {
   });
   audit(req.user!.id, "complaint.create", "complaint", id, { priority, score });
 
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[complaints] cloud sync error:", e);
+    }
+  }
+
   res.status(201).json({ complaint: serializeComplaint(created, req.user!.id) });
 });
 
 /** Owner edits are allowed while the complaint is still open. */
-complaintRouter.patch("/:id", requireAuth, (req, res) => {
+complaintRouter.patch("/:id", requireAuth, async (req, res) => {
   const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
   if (!row) return bad(res, 404, "Complaint not found");
   if (row.reporter_id !== req.user!.id && req.user!.role !== "admin")
@@ -275,12 +298,20 @@ complaintRouter.patch("/:id", requireAuth, (req, res) => {
     row.id,
   ]);
   audit(req.user!.id, "complaint.update", "complaint", row.id);
-  queueCloudSync();
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[complaints] cloud sync error:", e);
+    }
+  } else {
+    queueCloudSync();
+  }
   res.json({ complaint: serializeComplaint(queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [row.id])!, req.user!.id) });
 });
 
 /** Delete complaint by citizen (own report) or admin/official. */
-complaintRouter.delete("/:id", requireAuth, (req, res) => {
+complaintRouter.delete("/:id", requireAuth, async (req, res) => {
   const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
   if (!row) return bad(res, 404, "Complaint not found");
 
@@ -299,12 +330,20 @@ complaintRouter.delete("/:id", requireAuth, (req, res) => {
   });
 
   audit(req.user!.id, "complaint.delete", "complaint", row.id);
-  queueCloudSync();
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[complaints] cloud sync error:", e);
+    }
+  } else {
+    queueCloudSync();
+  }
   res.json({ ok: true, deletedId: row.id });
 });
 
 /** Idempotent community confirmation. */
-complaintRouter.post("/:id/confirm", requireAuth, (req, res) => {
+complaintRouter.post("/:id/confirm", requireAuth, async (req, res) => {
   const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
   if (!row) return bad(res, 404, "Complaint not found");
   if (row.reporter_id === req.user!.id) return bad(res, 409, "You cannot confirm your own report.");
@@ -323,10 +362,17 @@ complaintRouter.post("/:id/confirm", requireAuth, (req, res) => {
     ]);
   }
   audit(req.user!.id, existing ? "complaint.unconfirm" : "complaint.confirm", "complaint", row.id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[complaints] cloud sync error:", e);
+    }
+  }
   res.json({ complaint: serializeComplaint(row, req.user!.id) });
 });
 
-complaintRouter.post("/:id/comments", requireAuth, (req, res) => {
+complaintRouter.post("/:id/comments", requireAuth, async (req, res) => {
   const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
   if (!row) return bad(res, 404, "Complaint not found");
   const body = text(req.body?.text, 800);
@@ -341,11 +387,18 @@ complaintRouter.post("/:id/comments", requireAuth, (req, res) => {
     nowIso(),
   ]);
   audit(req.user!.id, "complaint.comment", "complaint", row.id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[complaints] cloud sync error:", e);
+    }
+  }
   res.status(201).json({ complaint: serializeComplaint(row, req.user!.id) });
 });
 
 /** Standalone upload; media is linked to a complaint at submission time. */
-complaintRouter.post("/media", requireAuth, upload.single("file"), (req, res) => {
+complaintRouter.post("/media", requireAuth, upload.single("file"), async (req, res) => {
   if (!req.file) return bad(res, 400, "No file received.");
   const kind = req.file.mimetype.startsWith("video/") ? "video" : "photo";
   const limit = kind === "photo" ? config.media.maxImageBytes : config.media.maxVideoBytes;
@@ -361,7 +414,8 @@ complaintRouter.post("/media", requireAuth, upload.single("file"), (req, res) =>
   if (isCloudConfigured() && req.file.path) {
     try {
       const buffer = fs.readFileSync(req.file.path);
-      void saveMediaToCloud(id, req.file.mimetype, buffer);
+      await saveMediaToCloud(id, req.file.mimetype, buffer);
+      await syncCloudDatabase();
     } catch (e) {
       console.warn("[media] Cloud media save warning:", e);
     }
@@ -379,7 +433,7 @@ complaintRouter.get("/media/:id", optionalAuth, (req, res) => {
   void sendMedia(String(req.params.id), res);
 });
 
-complaintRouter.post("/:id/media", requireAuth, upload.single("file"), (req, res) => {
+complaintRouter.post("/:id/media", requireAuth, upload.single("file"), async (req, res) => {
   const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
   if (!row) return bad(res, 404, "Complaint not found");
   if (row.reporter_id !== req.user!.id && req.user!.role !== "admin")
@@ -395,7 +449,7 @@ complaintRouter.post("/:id/media", requireAuth, upload.single("file"), (req, res
   if (isCloudConfigured() && req.file.path) {
     try {
       const buffer = fs.readFileSync(req.file.path);
-      void saveMediaToCloud(id, req.file.mimetype, buffer);
+      await saveMediaToCloud(id, req.file.mimetype, buffer);
     } catch (e) {
       console.warn("[media] Cloud media save warning:", e);
     }
@@ -406,6 +460,13 @@ complaintRouter.post("/:id/media", requireAuth, upload.single("file"), (req, res
     row.id,
   ]);
   audit(req.user!.id, "complaint.media", "complaint", row.id, { kind });
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[media] cloud sync error:", e);
+    }
+  }
   res.status(201).json({
     media: { id, kind, url: `/api/media/${id}` },
     complaint: serializeComplaint(queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [row.id])!, req.user!.id),

@@ -12,7 +12,7 @@ import {
 } from "../auth.js";
 import { config } from "../config.js";
 import { execute, nowIso, queryOne, uid } from "../db.js";
-import { isCloudConfigured, refreshIfNewer } from "../cloud-storage.js";
+import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "../cloud-storage.js";
 import { notifyStaff, notifyUser } from "../notifications.js";
 import {
   bad,
@@ -51,7 +51,7 @@ function readSessionUser(id: string): SessionUser {
   };
 }
 
-authRouter.post("/register", (req, res) => {
+authRouter.post("/register", async (req, res) => {
   const name = text(req.body?.name, 80);
   const email = text(req.body?.email, 160).toLowerCase();
   const phone = normalisePhone(text(req.body?.phone, 24));
@@ -80,11 +80,18 @@ authRouter.post("/register", (req, res) => {
   );
 
   const session = createSession(id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] register sync error:", e);
+    }
+  }
   res.status(201).json({ token: session.token, expiresAt: session.expiresAt, user: publicUser(readSessionUser(id)) });
 });
 
 /** Officials request access; they do not receive staff permissions until approved. */
-authRouter.post("/register-official", (req, res) => {
+authRouter.post("/register-official", async (req, res) => {
   const name = text(req.body?.name, 80);
   const email = text(req.body?.email, 160).toLowerCase();
   const phone = normalisePhone(text(req.body?.phone, 24));
@@ -121,6 +128,14 @@ authRouter.post("/register-official", (req, res) => {
     body: `${name} (${department}) requested municipal staff access and is awaiting approval.`,
   });
 
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] register-official sync error:", e);
+    }
+  }
+
   res.status(201).json({
     status: "pending",
     message: "Request submitted. An administrator must approve this account before staff access is granted.",
@@ -128,6 +143,13 @@ authRouter.post("/register-official", (req, res) => {
 });
 
 authRouter.post("/login", async (req, res) => {
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] login refresh error:", e);
+    }
+  }
   const identifier = text(req.body?.identifier, 160).toLowerCase();
   const password = text(req.body?.password, 200);
   if (!identifier || !password) return bad(res, 400, "Enter your email or phone and password.");
@@ -170,7 +192,7 @@ authRouter.get("/me", optionalAuth, (req, res) => {
   res.json({ user: publicUser(req.user) });
 });
 
-authRouter.patch("/me", requireAuth, (req, res) => {
+authRouter.patch("/me", requireAuth, async (req, res) => {
   const updates: string[] = [];
   const values: (string | number)[] = [];
   const name = text(req.body?.name, 80);
@@ -213,10 +235,17 @@ authRouter.patch("/me", requireAuth, (req, res) => {
   updates.push("updated_at = ?");
   values.push(nowIso());
   execute(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, [...values, req.user!.id]);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] patch me sync error:", e);
+    }
+  }
   res.json({ user: publicUser(readSessionUser(req.user!.id)) });
 });
 
-authRouter.post("/change-password", requireAuth, (req, res) => {
+authRouter.post("/change-password", requireAuth, async (req, res) => {
   const current = text(req.body?.currentPassword, 200);
   const next = text(req.body?.newPassword, 200);
   const row = queryOne<Record<string, any>>("SELECT password_hash FROM users WHERE id = ?", [req.user!.id]);
@@ -232,6 +261,13 @@ authRouter.post("/change-password", requireAuth, (req, res) => {
   ]);
   execute("DELETE FROM sessions WHERE user_id = ?", [req.user!.id]);
   const session = createSession(req.user!.id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] change password sync error:", e);
+    }
+  }
   res.json({ ok: true, token: session.token });
 });
 
@@ -261,7 +297,7 @@ authRouter.post("/forgot-password", (req, res) => {
   });
 });
 
-authRouter.post("/reset-password", (req, res) => {
+authRouter.post("/reset-password", async (req, res) => {
   const token = text(req.body?.token, 200);
   const password = text(req.body?.password, 200);
   const problem = passwordProblem(password);
@@ -280,6 +316,13 @@ authRouter.post("/reset-password", (req, res) => {
   ]);
   execute("UPDATE password_resets SET used = 1 WHERE token_hash = ?", [sha256(token)]);
   execute("DELETE FROM sessions WHERE user_id = ?", [row.user_id]);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] reset-password sync error:", e);
+    }
+  }
   res.json({ ok: true });
 });
 

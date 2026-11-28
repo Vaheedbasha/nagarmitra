@@ -5,6 +5,7 @@ import { notifyStaff, notifyUser } from "../notifications.js";
 import { audit, serializeComplaint, type ComplaintRow } from "../serialize.js";
 import { STATUS_IDS, type StatusId } from "../types.js";
 import { bad, parseNumber, queryString, text } from "../validate.js";
+import { isCloudConfigured, syncCloudDatabase, refreshIfNewer } from "../cloud-storage.js";
 
 export const adminRouter = Router();
 
@@ -14,7 +15,14 @@ function staffComplaint(id: string) {
   return queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [id]);
 }
 
-adminRouter.get("/complaints", (req, res) => {
+adminRouter.get("/complaints", async (req, res) => {
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[admin] refresh error:", e);
+    }
+  }
   const status = queryString(req, "status");
   const category = queryString(req, "category");
   const priority = queryString(req, "priority");
@@ -66,7 +74,14 @@ adminRouter.get("/complaints", (req, res) => {
   });
 });
 
-adminRouter.get("/analytics", (_req, res) => {
+adminRouter.get("/analytics", async (_req, res) => {
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[admin] analytics refresh error:", e);
+    }
+  }
   const totals = queryOne<Record<string, number>>(
     `SELECT COUNT(*) AS total,
        SUM(status = 'submitted') AS submitted,
@@ -154,7 +169,14 @@ adminRouter.get("/analytics", (_req, res) => {
   });
 });
 
-adminRouter.get("/verification", (req, res) => {
+adminRouter.get("/verification", async (req, res) => {
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[admin] verification refresh error:", e);
+    }
+  }
   const tab = queryString(req, "tab") || "pending";
   const latest = `(SELECT decision FROM verification_decisions v WHERE v.complaint_id = c.id ORDER BY created_at DESC LIMIT 1)`;
   const clause =
@@ -194,7 +216,7 @@ adminRouter.get("/verification", (req, res) => {
   });
 });
 
-adminRouter.post("/complaints/:id/verification", (req, res) => {
+adminRouter.post("/complaints/:id/verification", async (req, res) => {
   const row = staffComplaint(String(req.params.id));
   if (!row) return bad(res, 404, "Complaint not found");
   const decision = text(req.body?.decision, 20);
@@ -235,10 +257,17 @@ adminRouter.post("/complaints/:id/verification", (req, res) => {
     );
   });
   audit(req.user!.id, "complaint.verification", "complaint", row.id, { decision });
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[admin] verification sync error:", e);
+    }
+  }
   res.json({ complaint: serializeComplaint(staffComplaint(row.id)!, req.user!.id) });
 });
 
-adminRouter.patch("/complaints/:id", (req, res) => {
+adminRouter.patch("/complaints/:id", async (req, res) => {
   const row = staffComplaint(String(req.params.id));
   if (!row) return bad(res, 404, "Complaint not found");
 
@@ -342,6 +371,13 @@ adminRouter.patch("/complaints/:id", (req, res) => {
         .join(" · "),
     });
   }
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[admin] staff_update sync error:", e);
+    }
+  }
   res.json({ complaint: serializeComplaint(staffComplaint(row.id)!, req.user!.id) });
 });
 
@@ -365,7 +401,7 @@ adminRouter.get("/official-requests", requireAdmin, (_req, res) => {
   });
 });
 
-adminRouter.post("/official-requests/:id/decision", requireAdmin, (req, res) => {
+adminRouter.post("/official-requests/:id/decision", requireAdmin, async (req, res) => {
   const decision = text(req.body?.decision, 20);
   if (!["approved", "rejected"].includes(decision)) return bad(res, 400, "Invalid decision.");
   const user = queryOne<{ id: string; role: string; name: string }>(
@@ -388,6 +424,13 @@ adminRouter.post("/official-requests/:id/decision", requireAdmin, (req, res) => 
         : "An administrator declined this request. Contact your municipal IT desk for details.",
   });
   audit(req.user!.id, `official.${decision}`, "user", user.id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[admin] official decision sync error:", e);
+    }
+  }
   res.json({ ok: true, status: decision });
 });
 

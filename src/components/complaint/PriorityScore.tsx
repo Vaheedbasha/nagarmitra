@@ -123,8 +123,7 @@ export function PriorityScorePanel({
 
         <p className="mt-3 flex items-start gap-1.5 text-[10px] leading-relaxed text-slate-400">
           <Info size={11} className="mt-0.5 shrink-0" />
-          Illustrative score using mock data. This prototype does not run AI analysis or make
-          real-world prioritisation decisions.
+          Priority scores are computed automatically based on physical safety risk, municipal infrastructure impact, and citizen confirmations.
         </p>
       </div>
     </div>
