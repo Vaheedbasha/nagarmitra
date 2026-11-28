@@ -18,6 +18,7 @@ import type {
   VerificationDecision,
 } from "@/types";
 import type { Language } from "@/lib/translations";
+import { PRESEEDED_INDIAN_CITIES } from "@/lib/location";
 
 interface ComplaintList {
   items: Complaint[];
@@ -51,6 +52,8 @@ interface ComplaintsContextValue {
   decideVerification: (id: string, decision: VerificationDecision, note?: string) => Promise<void>;
   upvote: (id: string) => Promise<void>;
   addComment: (complaintId: string, text: string, author?: string) => Promise<void>;
+  cities: string[];
+  addCustomCity: (name: string) => string;
   selectedCity: string;
   setSelectedCity: (city: string) => void;
   language: Language;
@@ -69,14 +72,25 @@ const EMPTY_STATS: ComplaintStats = {
 
 const ComplaintsContext = createContext<ComplaintsContextValue | null>(null);
 const CITY_KEY = "nagarmitra.city";
+const CUSTOM_CITIES_KEY = "nagarmitra_custom_cities";
 const LANGUAGE_KEY = "nagarmitra.language";
 
-export const CITIES = ["Riverton", "Metro Heights", "Bay City"] as const;
+export const CITIES = PRESEEDED_INDIAN_CITIES;
+
+function getStoredCustomCities(): string[] {
+  try {
+    const raw = window.localStorage.getItem(CUSTOM_CITIES_KEY);
+    return raw ? (JSON.parse(raw) as string[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 export function ComplaintsProvider({ children }: { children: ReactNode }) {
   const { user, refreshUser } = useAuth();
   const { toast } = useToast();
 
+  const [customCities, setCustomCities] = useState<string[]>(() => getStoredCustomCities());
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [myComplaints, setMyComplaints] = useState<Complaint[]>([]);
   const [stats, setStats] = useState<ComplaintStats>(EMPTY_STATS);
@@ -84,7 +98,7 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [selectedCity, setSelectedCityState] = useState<string>(
-    () => window.localStorage.getItem(CITY_KEY) ?? "Riverton"
+    () => window.localStorage.getItem(CITY_KEY) ?? "Hyderabad"
   );
   const [language, setLanguageState] = useState<Language>(
     () => ((user?.language as Language) ?? (window.localStorage.getItem(LANGUAGE_KEY) as Language) ?? "en")
@@ -111,6 +125,45 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, []);
+
+  const addCustomCity = useCallback((rawName: string) => {
+    const trimmed = rawName.trim();
+    if (!trimmed) return selectedCity;
+    const formatted = trimmed
+      .split(" ")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+      .join(" ");
+
+    setCustomCities((current) => {
+      if (
+        PRESEEDED_INDIAN_CITIES.some((c) => c.toLowerCase() === formatted.toLowerCase()) ||
+        current.some((c) => c.toLowerCase() === formatted.toLowerCase())
+      ) {
+        return current;
+      }
+      const updated = [...current, formatted];
+      try {
+        window.localStorage.setItem(CUSTOM_CITIES_KEY, JSON.stringify(updated));
+      } catch {
+        /* ignore */
+      }
+      return updated;
+    });
+
+    setSelectedCity(formatted);
+    toast({ title: `City set to ${formatted}`, variant: "success" });
+    return formatted;
+  }, [selectedCity, setSelectedCity, toast]);
+
+  const allCities = useMemo(() => {
+    const list = [...PRESEEDED_INDIAN_CITIES] as string[];
+    for (const c of customCities) {
+      if (!list.some((existing) => existing.toLowerCase() === c.toLowerCase())) {
+        list.push(c);
+      }
+    }
+    return list;
+  }, [customCities]);
 
   const setLanguage = useCallback(
     (next: Language) => {
@@ -260,6 +313,8 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       decideVerification,
       upvote,
       addComment,
+      cities: allCities,
+      addCustomCity,
       selectedCity,
       setSelectedCity,
       language,
@@ -280,6 +335,8 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       decideVerification,
       upvote,
       addComment,
+      allCities,
+      addCustomCity,
       selectedCity,
       setSelectedCity,
       language,

@@ -4,6 +4,8 @@ import {
   ArrowRight,
   ChevronRight,
   Compass,
+  Flame,
+  Globe,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -25,7 +27,7 @@ type CategoryFilter = CategoryId | "all";
 type FeedTab = "top" | "your_city" | "other_cities";
 
 export default function Explore() {
-  const { complaints, selectedCity, setSelectedCity } = useComplaints();
+  const { complaints, cities, selectedCity, setSelectedCity } = useComplaints();
   const [feedTab, setFeedTab] = useState<FeedTab>("top");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
@@ -116,35 +118,38 @@ export default function Explore() {
           <button
             onClick={() => setFeedTab("top")}
             className={cn(
-              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition",
               feedTab === "top"
                 ? "bg-brand-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             )}
           >
-            🔥 Top (Newest)
+            <Flame size={13} className={feedTab === "top" ? "text-amber-300" : "text-amber-500"} />
+            <span>Top (Newest)</span>
           </button>
           <button
             onClick={() => setFeedTab("your_city")}
             className={cn(
-              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition",
               feedTab === "your_city"
                 ? "bg-brand-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             )}
           >
-            📍 Your City ({selectedCity})
+            <MapPin size={13} className={feedTab === "your_city" ? "text-brand-200" : "text-brand-600"} />
+            <span>Your City ({selectedCity})</span>
           </button>
           <button
             onClick={() => setFeedTab("other_cities")}
             className={cn(
-              "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+              "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition",
               feedTab === "other_cities"
                 ? "bg-brand-600 text-white shadow-sm"
                 : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
             )}
           >
-            🌐 Other Cities
+            <Globe size={13} className={feedTab === "other_cities" ? "text-sky-200" : "text-sky-600"} />
+            <span>Other Cities</span>
           </button>
         </div>
 
@@ -156,9 +161,11 @@ export default function Explore() {
             onChange={(e) => setSelectedCity(e.target.value)}
             className="rounded-lg border border-line bg-white px-2 py-0.5 text-[11px] font-bold text-slate-700 outline-none"
           >
-            <option value="Riverton">Riverton</option>
-            <option value="Metro Heights">Metro Heights</option>
-            <option value="Bay City">Bay City</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>
+                {city}
+              </option>
+            ))}
           </select>
         </div>
       </div>

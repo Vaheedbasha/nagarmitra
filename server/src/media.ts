@@ -12,6 +12,17 @@ const MIME_EXT: Record<string, string> = {
   "video/mp4": ".mp4",
   "video/webm": ".webm",
   "video/quicktime": ".mov",
+  "audio/mpeg": ".mp3",
+  "audio/mp3": ".mp3",
+  "audio/wav": ".wav",
+  "audio/wave": ".wav",
+  "audio/x-wav": ".wav",
+  "audio/ogg": ".ogg",
+  "audio/webm": ".weba",
+  "audio/aac": ".aac",
+  "audio/m4a": ".m4a",
+  "audio/x-m4a": ".m4a",
+  "audio/mp4": ".m4a",
 };
 
 export const ALLOWED_MIME = Object.keys(MIME_EXT);

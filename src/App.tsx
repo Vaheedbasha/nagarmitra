@@ -11,21 +11,22 @@ import { useComplaints } from "@/store/ComplaintsContext";
 import { translate } from "@/lib/i18n";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Lazy-loaded routes for optimal initial bundle size
-const Login = lazy(() => import("@/pages/auth/Login"));
+// Core Citizen Routes (bundled for instant, zero-delay navigation)
+import Home from "@/pages/citizen/Home";
+import Explore from "@/pages/citizen/Explore";
+import ChatReport from "@/pages/citizen/ChatReport";
+import MyReports from "@/pages/citizen/MyReports";
+import Profile from "@/pages/citizen/Profile";
+import ComplaintDetail from "@/pages/citizen/ComplaintDetail";
+import Login from "@/pages/auth/Login";
+
+// Secondary & Admin Routes (code-split & lazy-loaded)
 const Register = lazy(() => import("@/pages/auth/Register"));
 const OfficialRegister = lazy(() => import("@/pages/auth/OfficialRegister"));
 const PendingApproval = lazy(() => import("@/pages/auth/PendingApproval"));
 const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
-
-const Home = lazy(() => import("@/pages/citizen/Home"));
 const VoiceReport = lazy(() => import("@/pages/citizen/VoiceReport"));
 const ManualReport = lazy(() => import("@/pages/citizen/ManualReport"));
-const ChatReport = lazy(() => import("@/pages/citizen/ChatReport"));
-const Explore = lazy(() => import("@/pages/citizen/Explore"));
-const MyReports = lazy(() => import("@/pages/citizen/MyReports"));
-const ComplaintDetail = lazy(() => import("@/pages/citizen/ComplaintDetail"));
-const Profile = lazy(() => import("@/pages/citizen/Profile"));
 
 const AdminOverview = lazy(() => import("@/pages/admin/AdminOverview"));
 const AdminComplaints = lazy(() => import("@/pages/admin/AdminComplaints"));
@@ -108,6 +109,16 @@ function NotFound() {
 }
 
 function AppRoutes() {
+  // Idle prefetching of secondary routes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void import("@/pages/auth/Register");
+      void import("@/pages/citizen/ManualReport");
+      void import("@/pages/citizen/VoiceReport");
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <>
       <ScrollToTop />

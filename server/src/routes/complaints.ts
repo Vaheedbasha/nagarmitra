@@ -26,7 +26,7 @@ const upload = multer({
   limits: { fileSize: config.media.maxVideoBytes, files: 1 },
   fileFilter: (_req, file, done) => {
     if (!ALLOWED_MIME.includes(file.mimetype)) {
-      done(new Error("Only JPEG, PNG, WebP images and MP4, WebM, MOV videos are supported."));
+      done(new Error("Supported formats: Images (JPEG, PNG, WebP), Videos (MP4, WebM, MOV), Audio (MP3, WAV, WebM, OGG, M4A, AAC)."));
       return;
     }
     done(null, true);

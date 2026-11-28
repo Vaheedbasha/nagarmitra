@@ -23,4 +23,14 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 4173,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          leaflet: ["leaflet"],
+        },
+      },
+    },
+  },
 });

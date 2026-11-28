@@ -79,7 +79,7 @@ export default function ComplaintDetail() {
   const handleShare = async () => {
     const shareData = {
       title: `Civic Alert: ${complaint.title}`,
-      text: `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" (${status.label}). Verify or track progress on NagarMitra:`,
+      text: `Civic Alert in ${complaint.location}: "${complaint.title}" (${status.label}). Verify or track progress on NagarMitra:`,
       url: window.location.href,
     };
 
@@ -100,7 +100,7 @@ export default function ComplaintDetail() {
     upvote(complaint.id);
     setHasConfirmed(true);
     toast({
-      title: "Verification recorded 👍",
+      title: "Verification recorded",
       description: "Your confirmation helps this issue get prioritised for field crews.",
       variant: "success",
     });
@@ -116,17 +116,17 @@ export default function ComplaintDetail() {
   };
 
   const shareWhatsApp = () => {
-    const text = `🚨 Civic Issue Reported on NagarMitra: ${complaint.title} in ${complaint.location}.\n\nTrack progress or verify this report here: ${window.location.href}`;
+    const text = `Civic Issue Reported on NagarMitra: ${complaint.title} in ${complaint.location}.\n\nTrack progress or verify this report here: ${window.location.href}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const shareTwitter = () => {
-    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}". Tracking progress on NagarMitra:`;
+    const text = `Civic Alert in ${complaint.location}: "${complaint.title}". Tracking progress on NagarMitra:`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(window.location.href)}`, "_blank");
   };
 
   const shareTelegram = () => {
-    const text = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}".`;
+    const text = `Civic Alert in ${complaint.location}: "${complaint.title}".`;
     window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent(text)}`, "_blank");
   };
 
@@ -142,7 +142,7 @@ export default function ComplaintDetail() {
     });
   };
 
-  const oneLineStoryText = `🚨 Civic Alert in ${complaint.location}: "${complaint.title}" remains unaddressed (${status.label}). Support this issue on NagarMitra: ${window.location.href}`;
+  const oneLineStoryText = `Civic Alert in ${complaint.location}: "${complaint.title}" remains unaddressed (${status.label}). Support this issue on NagarMitra: ${window.location.href}`;
 
   const copyStoryText = () => {
     navigator.clipboard?.writeText(oneLineStoryText);
@@ -405,7 +405,7 @@ export default function ComplaintDetail() {
 
             <div className="mt-4 border-t border-line/60 pt-3">
               <p className="text-[10.5px] text-slate-400 leading-relaxed">
-                🛡️ Comments are subject to NagarMitra community guidelines and civil moderation. Private personal contact information is strictly prohibited.
+                Comments are subject to NagarMitra community guidelines and civil moderation. Private personal contact information is strictly prohibited.
               </p>
             </div>
           </div>

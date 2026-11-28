@@ -29,6 +29,7 @@ import { CATEGORIES, TOP_CATEGORY_IDS, categoryMeta } from "@/lib/constants";
 import { SEVERITY_FACTORS, priorityFromScore, scoreFromFactors } from "@/data/complaints";
 import { uploadMedia } from "@/lib/api";
 import { cn, formatDate } from "@/lib/utils";
+import { getCityCoordinates } from "@/lib/location";
 import type { CategoryId, Complaint, PriorityFactors } from "@/types";
 
 const SEVERITIES = [
@@ -88,7 +89,7 @@ export default function ManualReport() {
     aiSummary?: string;
     aiSource?: string;
   };
-  const center = CITY_CENTERS[selectedCity] ?? CITY_CENTERS.Riverton;
+  const center = getCityCoordinates(selectedCity);
 
   const initialCategory = (prefill.category ?? searchParams.get("category") ?? "") as CategoryId | "";
   const [title, setTitle] = useState(prefill.title ?? "");

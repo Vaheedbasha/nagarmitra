@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -11,10 +12,11 @@ import {
   LogOut,
 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
-import { useComplaints, CITIES } from "@/store/ComplaintsContext";
+import { useComplaints } from "@/store/ComplaintsContext";
 import { useAuth } from "@/store/AuthContext";
 import { translate } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
+import { CityPickerModal } from "@/components/citizen/CityPickerModal";
 
 const NAV = [
   { to: "/", key: "home" as const, icon: Home, end: true },
@@ -29,6 +31,7 @@ export function CitizenLayout() {
   const navigate = useNavigate();
   const { selectedCity, setSelectedCity, language, setLanguage } = useComplaints();
   const { user, isStaff, logout } = useAuth();
+  const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const t = (key: Parameters<typeof translate>[1]) => translate(language, key);
   const isChatRoute = location.pathname === "/report" || location.pathname.startsWith("/report/");
 
@@ -51,23 +54,27 @@ export function CitizenLayout() {
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-4">
             <Logo />
 
-            <div className="relative flex shrink-0 items-center">
-              <span className="pointer-events-none absolute left-1.5 top-1/2 flex -translate-y-1/2 items-center text-brand-600 sm:left-2">
-                <MapPin size={10} />
-              </span>
-              <select
-                value={selectedCity}
-                onChange={(event) => setSelectedCity(event.target.value)}
-                className="h-8 max-w-[80px] cursor-pointer truncate rounded-xl border border-line bg-white/95 pl-4 pr-1.5 py-0.5 text-[10.5px] font-bold text-slate-700 shadow-sm outline-none transition hover:border-brand-300 focus:border-brand-500 sm:max-w-none sm:pl-6 sm:pr-2 sm:text-[11px]"
-                aria-label={t("city")}
-              >
-                {CITIES.map((city) => (
-                  <option key={city} value={city}>
-                    {city}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Mobile View: Location Icon Only (No Text) */}
+            <button
+              type="button"
+              onClick={() => setCityPickerOpen(true)}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-line bg-white/95 text-brand-600 shadow-sm transition hover:border-brand-300 active:scale-95 sm:hidden"
+              aria-label={`Current city: ${selectedCity}. Tap to change city.`}
+              title={`City: ${selectedCity} (Tap to change)`}
+            >
+              <MapPin size={15} />
+            </button>
+
+            {/* Desktop View: Location Icon + City Name */}
+            <button
+              type="button"
+              onClick={() => setCityPickerOpen(true)}
+              className="hidden sm:inline-flex shrink-0 items-center gap-1.5 h-8 rounded-xl border border-line bg-white/95 px-2.5 py-0.5 text-[11px] font-bold text-slate-700 shadow-sm transition hover:border-brand-300 focus:border-brand-500"
+              title="Click to change city"
+            >
+              <MapPin size={12} className="text-brand-600" />
+              <span>{selectedCity}</span>
+            </button>
 
             <nav className="hidden items-center gap-1 md:flex" aria-label="Citizen navigation">
               {NAV.filter((item) => !item.highlight).map((item) => (
@@ -207,6 +214,8 @@ export function CitizenLayout() {
           })}
         </div>
       </nav>
+
+      <CityPickerModal open={cityPickerOpen} onClose={() => setCityPickerOpen(false)} />
     </div>
   );
 }

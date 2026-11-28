@@ -43,13 +43,46 @@ interface AuthContextValue {
   refreshUser: () => Promise<void>;
 }
 
+const CACHED_USER_KEY = "nagarmitra_cached_user";
+
+function getCachedUser(): SessionUser | null {
+  try {
+    const raw = localStorage.getItem(CACHED_USER_KEY);
+    return raw ? (JSON.parse(raw) as SessionUser) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedUser(user: SessionUser | null) {
+  try {
+    if (user) {
+      localStorage.setItem(CACHED_USER_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(CACHED_USER_KEY);
+    }
+  } catch {
+    // ignore
+  }
+}
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<SessionUser | null>(null);
+  const [user, setUserState] = useState<SessionUser | null>(() => {
+    if (getToken()) {
+      return getCachedUser();
+    }
+    return null;
+  });
   const [token, setTokenState] = useState<string | null>(() => getToken());
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !getToken() ? false : !getCachedUser());
   const { toast } = useToast();
+
+  const setUser = useCallback((nextUser: SessionUser | null) => {
+    setUserState(nextUser);
+    setCachedUser(nextUser);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!getToken()) {
