@@ -53,7 +53,7 @@ export function Modal({
         aria-modal="true"
         aria-label={title}
         className={cn(
-          "relative w-full max-h-[90vh] overflow-y-auto animate-fade-up rounded-2xl bg-white shadow-pop",
+          "relative w-full max-w-[calc(100vw-1.5rem)] max-h-[90vh] overflow-y-auto animate-fade-up rounded-2xl bg-white shadow-pop",
           widths[size]
         )}
       >

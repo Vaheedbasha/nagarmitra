@@ -125,7 +125,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4 pb-12">
+    <div className="mx-auto w-full min-w-0 max-w-3xl space-y-4 pb-12">
       {/* Profile Header Card */}
       <div className="surface overflow-hidden">
         <div className="relative bg-brand-700 px-5 pb-12 pt-6">

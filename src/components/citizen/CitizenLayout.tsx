@@ -76,7 +76,7 @@ export function CitizenLayout() {
               <span>{selectedCity}</span>
             </button>
 
-            <nav className="hidden items-center gap-1 md:flex" aria-label="Citizen navigation">
+            <nav className="hidden items-center gap-1 lg:flex" aria-label="Citizen navigation">
               {NAV.filter((item) => !item.highlight).map((item) => (
                 <NavLink
                   key={item.to}
@@ -115,7 +115,7 @@ export function CitizenLayout() {
             {isStaff ? (
               <Link
                 to="/admin"
-                className="focus-ring hidden items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 sm:inline-flex"
+                className="focus-ring hidden items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-2 text-[12px] font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 lg:inline-flex"
                 title={t("adminConsole")}
               >
                 <LayoutDashboard size={14} />
@@ -136,7 +136,7 @@ export function CitizenLayout() {
 
                 <button
                   onClick={signOut}
-                  className="focus-ring hidden sm:inline-flex rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-red-600"
+                  className="focus-ring hidden lg:inline-flex rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-red-600"
                   aria-label={t("logout")}
                   title={t("logout")}
                 >
@@ -167,7 +167,7 @@ export function CitizenLayout() {
       </main>
 
       {!isChatRoute && (
-        <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 md:block">
+        <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 lg:block">
           <div>NagarMitra · Official Civic Intelligence Platform · Dedicated to Citizen Empowerment & Urban Development</div>
           <div className="mt-1.5 flex items-center justify-center gap-4 text-[10.5px]">
             <Link to={user?.role === "admin" || user?.role === "official" ? "/admin" : "/login"} className="text-slate-500 hover:text-brand-600 transition underline">
@@ -178,7 +178,7 @@ export function CitizenLayout() {
       )}
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 shadow-lg md:hidden"
+        className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-white pb-[calc(env(safe-area-inset-bottom)+0.25rem)] pt-1.5 shadow-lg lg:hidden"
         aria-label="Mobile navigation"
       >
         <div className="mx-auto flex max-w-md items-center justify-around px-2">

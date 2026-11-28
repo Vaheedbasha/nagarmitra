@@ -30,7 +30,7 @@ export function StatCard({
 }: StatCardProps) {
   const positive = (trend ?? 0) >= 0;
   return (
-    <div className={cn("surface p-4 sm:p-5", className)}>
+    <div className={cn("surface p-3.5 sm:p-5 min-w-0 overflow-hidden", className)}>
       <div className="flex items-start justify-between">
         <span className={cn("rounded-lg p-2", TONES[tone])}>
           <Icon size={18} strokeWidth={2} />
