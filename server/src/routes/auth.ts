@@ -146,6 +146,7 @@ authRouter.post("/register", async (req, res) => {
     user: publicUser(readSessionUser(id)),
     emailSent: emailResult.sent,
     previewUrl: emailResult.previewUrl,
+    emailError: emailResult.error,
   });
 });
 
@@ -521,6 +522,7 @@ authRouter.post("/resend-verification", optionalAuth, async (req, res) => {
     ok: true,
     emailSent: emailResult.sent,
     previewUrl: emailResult.previewUrl,
+    emailError: emailResult.error,
     message: "A new verification link has been dispatched to your email.",
   });
 });
