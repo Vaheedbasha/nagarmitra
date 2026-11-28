@@ -173,6 +173,13 @@ authRouter.post("/login", async (req, res) => {
 
   const session = createSession(row.id);
   const user = readSessionUser(row.id);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] login session sync error:", e);
+    }
+  }
   res.json({
     token: session.token,
     expiresAt: session.expiresAt,
@@ -181,9 +188,16 @@ authRouter.post("/login", async (req, res) => {
   });
 });
 
-authRouter.post("/logout", requireAuth, (req, res) => {
+authRouter.post("/logout", requireAuth, async (req, res) => {
   const header = req.headers.authorization ?? "";
   destroySession(header.replace("Bearer ", "").trim());
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] logout session sync error:", e);
+    }
+  }
   res.json({ ok: true });
 });
 
