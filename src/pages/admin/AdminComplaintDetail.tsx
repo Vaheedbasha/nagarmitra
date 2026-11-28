@@ -197,7 +197,7 @@ export default function AdminComplaintDetail() {
             ) : complaint.audio ? (
               <div className="p-4 sm:p-5 bg-slate-50">
                 <div className="mb-3 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Volume2 size={16} className="text-primary-600" />
+                  <Volume2 size={16} className="text-brand-600" />
                   <span>Citizen Voice Note Recording</span>
                 </div>
                 <audio controls src={complaint.audio} className="w-full h-11 rounded-lg" />
@@ -210,7 +210,7 @@ export default function AdminComplaintDetail() {
             {complaint.photo && complaint.audio && (
               <div className="border-t border-line p-3 sm:p-4 bg-slate-50/70">
                 <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                  <Volume2 size={14} className="text-primary-600" />
+                  <Volume2 size={14} className="text-brand-600" />
                   <span>Voice Note Attached</span>
                 </div>
                 <audio controls src={complaint.audio} className="w-full h-10 rounded-lg" />

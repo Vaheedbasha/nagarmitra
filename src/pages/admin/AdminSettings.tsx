@@ -180,7 +180,7 @@ export default function AdminSettings() {
             </div>
             <div className="mt-1 rounded-xl border border-line bg-slate-50/60 px-3 py-2.5">
               <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700">
-                <ShieldCheck size={12} className="text-primary-600" />
+                <ShieldCheck size={12} className="text-brand-600" />
                 Active Priority Engine
               </p>
               <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
@@ -277,7 +277,7 @@ export default function AdminSettings() {
                     className="flex items-center justify-between gap-2 rounded-lg border border-line bg-slate-50/70 px-2.5 py-2"
                   >
                     <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700">
-                      <Icon size={13} className="text-primary-600" />
+                      <Icon size={13} className="text-brand-600" />
                       {item.label}
                     </span>
                     <span className="text-[10px] font-semibold text-slate-500">

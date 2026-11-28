@@ -354,7 +354,7 @@ export default function VoiceReport() {
                   "relative flex h-24 w-24 sm:h-28 sm:w-28 items-center justify-center rounded-full transition shadow-lg active:scale-95 focus-ring",
                   recording
                     ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-primary-600 text-white hover:bg-primary-700"
+                    : "bg-brand-600 text-white hover:bg-brand-700"
                 )}
                 aria-label={recording ? "Stop recording voice note" : "Start recording voice note"}
               >
@@ -407,7 +407,7 @@ export default function VoiceReport() {
             {/* Audio Player */}
             <div className="rounded-xl border border-line bg-slate-50 p-3">
               <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                <Volume2 size={15} className="text-primary-600" />
+                <Volume2 size={15} className="text-brand-600" />
                 <span>Listen to preview</span>
               </div>
               <audio controls src={audioUrl} className="w-full h-11" />
@@ -443,11 +443,11 @@ export default function VoiceReport() {
                     className={cn(
                       "focus-ring flex items-center gap-2 rounded-xl border p-2.5 text-left text-xs font-semibold transition",
                       isSelected
-                        ? "border-primary-600 bg-primary-50/80 text-primary-900 shadow-xs"
+                        ? "border-brand-600 bg-brand-50/80 text-brand-900 shadow-xs"
                         : "border-line bg-white text-slate-600 hover:border-slate-300"
                     )}
                   >
-                    <Icon size={16} className={isSelected ? "text-primary-600" : "text-slate-400"} />
+                    <Icon size={16} className={isSelected ? "text-brand-600" : "text-slate-400"} />
                     <span className="truncate">{item.label}</span>
                   </button>
                 );

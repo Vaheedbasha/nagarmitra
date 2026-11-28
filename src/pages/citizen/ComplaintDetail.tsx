@@ -273,7 +273,7 @@ export default function ComplaintDetail() {
               {complaint.audio && (
                 <div className="mt-3 rounded-xl border border-line bg-slate-50/90 p-3 sm:p-3.5">
                   <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <Volume2 size={15} className="text-primary-600" />
+                    <Volume2 size={15} className="text-brand-600" />
                     <span>Official Voice Note Recording</span>
                   </div>
                   <audio controls src={complaint.audio} className="h-10 w-full rounded-lg" />
@@ -373,7 +373,7 @@ export default function ComplaintDetail() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:p-5">
             <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+              <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
                 <CheckCircle2 size={15} />
               </span>
               <div>
