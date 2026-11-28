@@ -11,7 +11,7 @@ import {
   type SessionUser,
 } from "../auth.js";
 import { config } from "../config.js";
-import { execute, nowIso, queryOne, uid } from "../db.js";
+import { db, execute, nowIso, queryOne, uid } from "../db.js";
 import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "../cloud-storage.js";
 import { notifyStaff, notifyUser } from "../notifications.js";
 import { sendVerificationEmail } from "../email.js";
@@ -75,19 +75,50 @@ authRouter.post("/register", async (req, res) => {
 
   const id = uid();
   const at = nowIso();
-  execute(
-    `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
-    [id, name, email, phone, hashPassword(password), city, area, language, at, at]
-  );
+  try {
+    execute(
+      `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
+      [id, name, email, phone, hashPassword(password), city, area, language, at, at]
+    );
+  } catch {
+    try {
+      db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;");
+    } catch {}
+    execute(
+      `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
+      [id, name, email, phone, hashPassword(password), city, area, language, at, at]
+    );
+  }
 
   const verifyToken = randomBytes(32).toString("base64url");
   const expiresAt = new Date(Date.now() + 24 * 3600_000).toISOString();
-  execute(
-    `INSERT INTO email_verifications (token_hash, user_id, email, expires_at, used, created_at)
-     VALUES (?, ?, ?, ?, 0, ?)`,
-    [sha256(verifyToken), id, email, expiresAt, at]
-  );
+  try {
+    execute(
+      `INSERT INTO email_verifications (token_hash, user_id, email, expires_at, used, created_at)
+       VALUES (?, ?, ?, ?, 0, ?)`,
+      [sha256(verifyToken), id, email, expiresAt, at]
+    );
+  } catch {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS email_verifications (
+          token_hash TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          email TEXT NOT NULL,
+          expires_at TEXT NOT NULL,
+          used INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL
+        );
+      `);
+    } catch {}
+    execute(
+      `INSERT INTO email_verifications (token_hash, user_id, email, expires_at, used, created_at)
+       VALUES (?, ?, ?, ?, 0, ?)`,
+      [sha256(verifyToken), id, email, expiresAt, at]
+    );
+  }
 
   let emailResult = { sent: false, previewUrl: "" };
   try {
