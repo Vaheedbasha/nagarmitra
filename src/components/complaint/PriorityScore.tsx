@@ -65,7 +65,7 @@ export function PriorityScorePanel({
           </span>
           <div>
             <h3 className="text-sm font-bold leading-tight">Priority assessment</h3>
-            <p className="text-[10px] text-slate-400">Transparent sample scoring model</p>
+            <p className="text-[10px] text-slate-400">Multi-factor civic risk assessment</p>
           </div>
         </div>
         <span

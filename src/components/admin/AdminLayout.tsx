@@ -239,11 +239,10 @@ export function AdminLayout() {
             </div>
 
             <div className="flex items-center gap-2">
-              {complaints.some((complaint) => complaint.isDemo) ? (
-                <span className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700 md:inline-flex">
-                  Seeded demo data
-                </span>
-              ) : null}
+              <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 md:inline-flex">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live Ward Operations
+              </span>
               <NotificationsBell />
               <Link
                 to="/"

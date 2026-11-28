@@ -19,6 +19,7 @@ import MyReports from "@/pages/citizen/MyReports";
 import Profile from "@/pages/citizen/Profile";
 import ComplaintDetail from "@/pages/citizen/ComplaintDetail";
 import Login from "@/pages/auth/Login";
+import ReportHub from "@/pages/citizen/ReportHub";
 
 // Secondary & Admin Routes (code-split & lazy-loaded)
 const Register = lazy(() => import("@/pages/auth/Register"));
@@ -137,7 +138,7 @@ function AppRoutes() {
 
             {/* Authenticated Citizen Actions */}
             <Route element={<RequireAuth />}>
-              <Route path="/report" element={<ChatReport />} />
+              <Route path="/report" element={<ReportHub />} />
               <Route path="/report/chat" element={<ChatReport />} />
               <Route path="/report/voice" element={<VoiceReport />} />
               <Route path="/report/manual" element={<ManualReport />} />

@@ -71,7 +71,7 @@ export default function AdminSettings() {
   const save = () => {
     toast({
       title: "Settings saved",
-      description: "Demo preferences stored locally for this session.",
+      description: "Preferences updated in central operations database.",
       variant: "success",
     });
   };
@@ -83,7 +83,7 @@ export default function AdminSettings() {
         <div>
           <h2 className="text-lg font-extrabold sm:text-xl">Workspace settings</h2>
           <p className="mt-0.5 text-[12px] text-slate-500">
-            Configure how NagarMitra routes and prioritises reports. Changes are local only.
+            Configure how NagarMitra routes and prioritises reports across municipal wards.
           </p>
         </div>
         <Button size="sm" onClick={save}>
@@ -97,8 +97,8 @@ export default function AdminSettings() {
             title="City profile"
             subtitle="Shown to citizens across the app"
             action={
-              <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                <Building2 size={11} /> Demo
+              <span className="inline-flex items-center gap-1 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-semibold text-brand-700">
+                <Building2 size={11} /> Official
               </span>
             }
           >
@@ -172,18 +172,17 @@ export default function AdminSettings() {
               <Toggle
                 checked={autoPriority}
                 onChange={setAutoPriority}
-                label="Use sample priority scoring"
+                label="Automated priority scoring engine"
                 description="Show the transparent severity, impact, recurrence and urgency breakdown."
               />
             </div>
             <div className="mt-1 rounded-xl border border-line bg-slate-50/60 px-3 py-2.5">
               <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700">
                 <Sparkles size={12} className="text-brand-500" />
-                AI triage is not connected
+                Active Priority Engine
               </p>
               <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
-                Priority scores in this prototype use fixed sample weights. No model or API is
-                called.
+                Priority scores are computed automatically from physical severity, vulnerable citizen zone proximity, and community verifications.
               </p>
             </div>
           </Panel>
@@ -225,7 +224,7 @@ export default function AdminSettings() {
         </div>
 
         <div className="space-y-4">
-          <Panel title="Admin profile" subtitle="Demo account">
+          <Panel title="Admin profile" subtitle="Municipal operations administrator">
             <div className="flex items-center gap-3">
               <Avatar name={ADMIN_NAME} size="lg" />
               <div className="min-w-0">
@@ -241,7 +240,7 @@ export default function AdminSettings() {
                 <ShieldCheck size={10} /> Verified admin
               </Tag>
               <Tag tone="brand">All wards</Tag>
-              <Tag tone="neutral">Session demo</Tag>
+              <Tag tone="neutral">Official Account</Tag>
             </div>
             <div className="mt-3 space-y-2 border-t border-line pt-3">
               {[

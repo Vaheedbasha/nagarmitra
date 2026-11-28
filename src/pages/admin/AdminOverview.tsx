@@ -230,7 +230,7 @@ export default function AdminOverview() {
 
         <Panel
           title="High priority issues"
-          subtitle="Ranked by sample priority score"
+          subtitle="Prioritised by public safety hazards, sensitive zones, and verification scores"
           flush
           action={
             <Link

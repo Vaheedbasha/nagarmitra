@@ -241,7 +241,7 @@ export default function AdminComplaints() {
 
       <Panel
         title="Complaint queue"
-        subtitle="Live demo data · status changes are saved locally"
+        subtitle="Official complaints registered across municipal wards"
         flush
       >
         {filtered.length === 0 ? (

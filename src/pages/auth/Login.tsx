@@ -120,7 +120,7 @@ export default function Login() {
           </div>
         </div>
         <p className="relative text-[10.5px] text-slate-500">
-          NagarMitra civic platform · demo data is labelled throughout
+          NagarMitra · Official Civic Intelligence Platform · Dedicated to Citizen Empowerment & Urban Development
         </p>
       </div>
 

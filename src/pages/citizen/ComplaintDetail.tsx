@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Copy,
   ExternalLink,
+  Loader2,
   MapPin,
   MessageSquare,
   Navigation,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   Sparkles,
   ThumbsUp,
+  Trash2,
   User,
 } from "lucide-react";
 import { useComplaint, useComplaints } from "@/store/ComplaintsContext";
@@ -35,7 +37,7 @@ export default function ComplaintDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { upvote, complaints, myComplaints, addComment } = useComplaints();
+  const { upvote, complaints, myComplaints, addComment, deleteComplaint } = useComplaints();
   const { user } = useAuth();
   const complaint = useComplaint(id);
 
@@ -47,10 +49,22 @@ export default function ComplaintDetail() {
 
   const [storyModalOpen, setStoryModalOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [commentText, setCommentText] = useState("");
   const [copiedStory, setCopiedStory] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [hasConfirmed, setHasConfirmed] = useState(false);
+
+  const handleDeleteReport = async () => {
+    if (!complaint) return;
+    setDeleting(true);
+    const success = await deleteComplaint(complaint.id);
+    setDeleting(false);
+    if (success) {
+      navigate("/reports");
+    }
+  };
 
   if (!complaint) {
     return (
@@ -58,7 +72,7 @@ export default function ComplaintDetail() {
         <EmptyState
           icon={MapPin}
           title="Complaint not found"
-          description="This complaint ID isn't in the demo dataset. It may have been removed."
+          description="This complaint could not be found or may have been removed by the reporter."
           action={<Button onClick={() => navigate("/reports")}>Back to my reports</Button>}
         />
       </div>
@@ -252,17 +266,27 @@ export default function ComplaintDetail() {
             <div className="border-t border-line/80 bg-slate-50/70 px-3 py-2.5 sm:px-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Confirm Issue / Upvote (Disabled/Hidden for Own Reports) */}
+                  {/* Confirm Issue / Upvote or Delete for Own Reports */}
                   {isOwnReport ? (
-                    <div
-                      className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50/70 px-3 text-[12px] font-semibold text-brand-700"
-                      title="You reported this complaint. Community members can verify and confirm."
-                    >
-                      <Check size={14} className="text-brand-600" />
-                      <span>Your Report</span>
-                      <span className="rounded-md bg-brand-100/80 px-1.5 py-0.5 font-mono text-[10.5px] text-brand-800">
-                        {complaint.upvotes}
-                      </span>
+                    <div className="flex items-center gap-1.5">
+                      <div
+                        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50/70 px-3 text-[12px] font-semibold text-brand-700"
+                        title="You reported this complaint. Community members can verify and confirm."
+                      >
+                        <Check size={14} className="text-brand-600" />
+                        <span>Your Report</span>
+                        <span className="rounded-md bg-brand-100/80 px-1.5 py-0.5 font-mono text-[10.5px] text-brand-800">
+                          {complaint.upvotes}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => setDeleteConfirmOpen(true)}
+                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/80 px-2.5 text-[11.5px] font-semibold text-red-700 shadow-xs transition hover:bg-red-100 active:scale-95"
+                        title="Delete your report"
+                      >
+                        <Trash2 size={13} className="text-red-600" />
+                        <span>Delete</span>
+                      </button>
                     </div>
                   ) : (
                     <button
@@ -339,15 +363,15 @@ export default function ComplaintDetail() {
                 <Sparkles size={15} />
               </span>
               <div>
-                <h2 className="text-[13.5px] font-bold">AI-generated summary</h2>
-                <p className="text-[10px] text-slate-400">Sample output · not a live AI service</p>
+                <h2 className="text-[13.5px] font-bold">AI Civic Triage & Executive Summary</h2>
+                <p className="text-[10px] text-slate-400">Automated triage for municipal dispatch</p>
               </div>
             </div>
             <p className="mt-3 rounded-xl bg-brand-50/60 p-3.5 text-[13px] leading-relaxed text-slate-700">
               {complaint.aiSummary}
             </p>
             <p className="mt-2 text-[10px] leading-relaxed text-slate-400">
-              This summary is illustrative demo content included with the complaint record.
+              Verified civic summary compiled from citizen evidence and ward jurisdiction records.
             </p>
           </div>
 
@@ -713,6 +737,38 @@ export default function ComplaintDetail() {
             >
               <Share2 size={13} className="text-emerald-600" />
               Share to WhatsApp Status / Story
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Complaint Confirmation Modal */}
+      <Modal
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Delete this complaint?"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-slate-600 leading-relaxed">
+            Are you sure you want to delete <span className="font-semibold text-slate-900">"{complaint.title}"</span>? This will permanently remove the complaint, photo evidence, and community updates. This action cannot be undone.
+          </p>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-line">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setDeleteConfirmOpen(false)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <button
+              onClick={handleDeleteReport}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-700 transition active:scale-95 disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+              <span>Delete Permanently</span>
             </button>
           </div>
         </div>

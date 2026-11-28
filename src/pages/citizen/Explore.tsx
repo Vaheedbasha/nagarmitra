@@ -19,6 +19,7 @@ import { Segmented } from "@/components/ui/Segmented";
 import { EmptyState } from "@/components/ui/Avatar";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { CATEGORIES, STATUSES, categoryMeta } from "@/lib/constants";
+import { translate } from "@/lib/i18n";
 import { cn, timeAgo } from "@/lib/utils";
 import type { CategoryId, StatusId } from "@/types";
 
@@ -27,7 +28,8 @@ type CategoryFilter = CategoryId | "all";
 type FeedTab = "top" | "your_city" | "other_cities";
 
 export default function Explore() {
-  const { complaints, cities, selectedCity, setSelectedCity } = useComplaints();
+  const { complaints, cities, selectedCity, setSelectedCity, language } = useComplaints();
+  const t = (k: Parameters<typeof translate>[1]) => translate(language, k);
   const [feedTab, setFeedTab] = useState<FeedTab>("top");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
@@ -104,10 +106,10 @@ export default function Explore() {
           </p>
         </div>
         <Link
-          to="/report/chat"
+          to="/report"
           className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3.5 py-2 text-[12px] font-semibold text-white shadow-sm transition hover:bg-brand-700"
         >
-          Report an issue
+          {t("report")}
           <ArrowRight size={14} />
         </Link>
       </div>
@@ -125,7 +127,7 @@ export default function Explore() {
             )}
           >
             <Flame size={13} className={feedTab === "top" ? "text-amber-300" : "text-amber-500"} />
-            <span>Top (Newest)</span>
+            <span>{t("trendingIssues")}</span>
           </button>
           <button
             onClick={() => setFeedTab("your_city")}
@@ -137,7 +139,7 @@ export default function Explore() {
             )}
           >
             <MapPin size={13} className={feedTab === "your_city" ? "text-brand-200" : "text-brand-600"} />
-            <span>Your City ({selectedCity})</span>
+            <span>{t("yourCity")} ({selectedCity})</span>
           </button>
           <button
             onClick={() => setFeedTab("other_cities")}
@@ -149,7 +151,7 @@ export default function Explore() {
             )}
           >
             <Globe size={13} className={feedTab === "other_cities" ? "text-sky-200" : "text-sky-600"} />
-            <span>Other Cities</span>
+            <span>{t("otherCities")}</span>
           </button>
         </div>
 

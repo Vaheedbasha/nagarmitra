@@ -172,7 +172,7 @@ export default function AdminVerification() {
                       <div className="flex flex-wrap items-center gap-1.5">
                         <Tag tone="neutral">{complaint.id}</Tag>
                         <PriorityChip priority={complaint.priority} size="sm" />
-                        {complaint.isDemo ? <Tag tone="amber">Seeded demo</Tag> : null}
+                        <Tag tone="brand">{complaint.city || "Verified"}</Tag>
                       </div>
                       <Link
                         to={`/admin/complaints/${complaint.id}`}

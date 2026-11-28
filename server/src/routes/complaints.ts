@@ -11,7 +11,7 @@ import { audit, serializeComplaint, type ComplaintRow } from "../serialize.js";
 import { CATEGORY_IDS, canonicalCategory, type StatusId } from "../types.js";
 import { bad, parseNumber, queryString, text } from "../validate.js";
 import { explainScore, factorsForSeverity, priorityFromScore, scoreFromFactors } from "../priority.js";
-import { isCloudConfigured, saveMediaToCloud } from "../cloud-storage.js";
+import { isCloudConfigured, queueCloudSync, saveMediaToCloud } from "../cloud-storage.js";
 
 export const complaintRouter = Router();
 
@@ -275,7 +275,32 @@ complaintRouter.patch("/:id", requireAuth, (req, res) => {
     row.id,
   ]);
   audit(req.user!.id, "complaint.update", "complaint", row.id);
+  queueCloudSync();
   res.json({ complaint: serializeComplaint(queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [row.id])!, req.user!.id) });
+});
+
+/** Delete complaint by citizen (own report) or admin/official. */
+complaintRouter.delete("/:id", requireAuth, (req, res) => {
+  const row = queryOne<ComplaintRow>("SELECT * FROM complaints WHERE id = ?", [String(req.params.id)]);
+  if (!row) return bad(res, 404, "Complaint not found");
+
+  const isReporter = row.reporter_id === req.user!.id;
+  const isStaff = req.user!.role === "admin" || req.user!.role === "official";
+  if (!isReporter && !isStaff) {
+    return bad(res, 403, "You can only delete your own submitted reports.");
+  }
+
+  transaction(() => {
+    execute("DELETE FROM timeline WHERE complaint_id = ?", [row.id]);
+    execute("DELETE FROM comments WHERE complaint_id = ?", [row.id]);
+    execute("DELETE FROM confirmations WHERE complaint_id = ?", [row.id]);
+    execute("DELETE FROM media WHERE complaint_id = ?", [row.id]);
+    execute("DELETE FROM complaints WHERE id = ?", [row.id]);
+  });
+
+  audit(req.user!.id, "complaint.delete", "complaint", row.id);
+  queueCloudSync();
+  res.json({ ok: true, deletedId: row.id });
 });
 
 /** Idempotent community confirmation. */

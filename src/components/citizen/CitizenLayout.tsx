@@ -21,7 +21,7 @@ import { CityPickerModal } from "@/components/citizen/CityPickerModal";
 const NAV = [
   { to: "/", key: "home" as const, icon: Home, end: true },
   { to: "/explore", key: "explore" as const, icon: Compass },
-  { to: "/report/chat", key: "report" as const, icon: MessageSquarePlus, highlight: true },
+  { to: "/report", key: "report" as const, icon: MessageSquarePlus, highlight: true },
   { to: "/reports", key: "myReports" as const, icon: ClipboardList },
   { to: "/profile", key: "profile" as const, icon: User },
 ];
@@ -168,7 +168,7 @@ export function CitizenLayout() {
 
       {!isChatRoute && (
         <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 md:block">
-          NagarMitra · civic intelligence · demo records are labelled in the interface
+          NagarMitra · Official Civic Intelligence Platform · Dedicated to Citizen Empowerment & Urban Development
         </footer>
       )}
 

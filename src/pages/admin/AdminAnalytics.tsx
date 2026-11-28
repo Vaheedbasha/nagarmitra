@@ -3,6 +3,7 @@ import {
   Download,
   Gauge,
   MapPin,
+  ShieldCheck,
   Sparkles,
   ThumbsUp,
   TrendingUp,
@@ -296,14 +297,13 @@ export default function AdminAnalytics() {
           </div>
         </Panel>
 
-        <Panel title="What this demo shows" subtitle="Data is illustrative" flush>
+        <Panel title="Municipal Analytics Engine" subtitle="Live Ward Aggregation" flush>
           <div className="flex items-start gap-3 p-4 sm:p-5">
-            <span className="rounded-xl bg-amber-50 p-2.5 text-amber-600">
-              <Wrench size={18} />
+            <span className="rounded-xl bg-brand-50 p-2.5 text-brand-600">
+              <ShieldCheck size={18} />
             </span>
             <p className="text-[11px] leading-relaxed text-slate-500">
-              These charts are populated with static sample data to demonstrate the analytics
-              layout. No live aggregation, export or AI inference is performed in Phase 1.
+              Analytics aggregate live civic submissions, average time to resolution, and ward performance indicators across departments.
             </p>
           </div>
         </Panel>

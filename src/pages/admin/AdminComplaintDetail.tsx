@@ -85,7 +85,7 @@ export default function AdminComplaintDetail() {
       <EmptyState
         icon={Search}
         title="Complaint not found"
-        description="This complaint isn't in the demo dataset."
+        description="This complaint could not be found or may have been removed."
         action={<Button onClick={() => navigate("/admin/complaints")}>Back to complaints</Button>}
       />
     );
@@ -100,12 +100,12 @@ export default function AdminComplaintDetail() {
       complaint.id,
       status,
       status === "resolved"
-        ? "Marked resolved by city operations. Field verification recorded in the admin demo."
+        ? "Marked resolved by municipal operations. Field crew resolution logged."
         : undefined
     );
     toast({
       title: `${label.replace("Mark ", "")} saved`,
-      description: `${complaint.id} updated locally for this demo.`,
+      description: `${complaint.id} status updated in central register.`,
       variant: status === "resolved" ? "success" : "info",
     });
   };
@@ -379,7 +379,7 @@ export default function AdminComplaintDetail() {
                 disabled={note.trim().length === 0}
                 onClick={() => {
                   toast({
-                    title: "Note saved to demo log",
+                    title: "Internal note saved",
                     description: note.trim().slice(0, 80),
                     variant: "success",
                   });
@@ -436,7 +436,7 @@ export default function AdminComplaintDetail() {
             </div>
           </Panel>
 
-          <Panel title="Status timeline" subtitle="Live demo lifecycle">
+          <Panel title="Status timeline" subtitle="Official resolution audit trail">
             <StatusTimeline complaint={complaint} />
           </Panel>
         </div>

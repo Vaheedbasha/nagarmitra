@@ -70,7 +70,7 @@ export default function Home() {
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
               <Link
-                to="/report/chat"
+                to="/report"
                 className="focus-ring inline-flex h-11 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-brand-700 shadow-sm transition hover:bg-brand-50"
               >
                 {t.reportBtn}

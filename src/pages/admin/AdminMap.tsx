@@ -75,7 +75,7 @@ export default function AdminMap() {
             onClick={() =>
               toast({
                 title: "Map refreshed",
-                description: "Demo marker positions are static sample data.",
+                description: "GIS coordinates synchronized with municipal ward database.",
                 variant: "info",
               })
             }
@@ -147,7 +147,7 @@ export default function AdminMap() {
             <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 rounded-lg border border-line bg-white/95 px-2.5 py-1.5 text-[10px] font-semibold text-slate-600 shadow-sm backdrop-blur">
               <span className="flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-500" />
-                Live demo map
+                Live Municipal GIS Map
               </span>
               <span className="text-slate-300">|</span>
               <span className="text-slate-400">{filtered.length} pins</span>

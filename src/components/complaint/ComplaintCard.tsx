@@ -9,6 +9,8 @@ import { categoryMeta } from "@/lib/constants";
 import { cn, formatDate, timeAgo } from "@/lib/utils";
 import type { Complaint } from "@/types";
 
+import { translate } from "@/lib/i18n";
+
 export function ComplaintCard({
   complaint,
   className,
@@ -18,10 +20,11 @@ export function ComplaintCard({
   className?: string;
   showUpdate?: boolean;
 }) {
-  const { upvote, myComplaints } = useComplaints();
+  const { upvote, myComplaints, language } = useComplaints();
   const { user } = useAuth();
   const { toast } = useToast();
   const [hasConfirmed, setHasConfirmed] = useState(false);
+  const t = (k: Parameters<typeof translate>[1]) => translate(language, k);
 
   const isOwnReport = Boolean(
     complaint.isMine ||
@@ -146,7 +149,7 @@ export function ComplaintCard({
             title="You reported this issue"
           >
             <Check size={12} className="text-brand-600" />
-            <span>Your Report</span>
+            <span>{t("yourReport")}</span>
             <span className="font-mono text-[10px] text-brand-600">({complaint.upvotes})</span>
           </span>
         ) : (
@@ -162,7 +165,7 @@ export function ComplaintCard({
             title="Confirm / verify this report"
           >
             <ThumbsUp size={13} className={hasConfirmed ? "fill-emerald-600 text-emerald-600" : "text-slate-400"} />
-            <span>{hasConfirmed ? "Confirmed" : "Confirm"}</span>
+            <span>{hasConfirmed ? "Confirmed" : t("confirmIssue")}</span>
             <span className="font-mono text-[10px] text-slate-500">({complaint.upvotes})</span>
           </button>
         )}
@@ -178,7 +181,7 @@ export function ComplaintCard({
             title="Open turn-by-turn directions in Google Maps"
           >
             <Navigation size={12} className="text-emerald-600" />
-            <span className="text-[10.5px]">Directions</span>
+            <span className="text-[10.5px]">{t("directions")}</span>
           </a>
         ) : null}
 
@@ -196,7 +199,7 @@ export function ComplaintCard({
           title="Share across social apps"
         >
           <Share2 size={13} className="text-slate-400" />
-          <span className="hidden sm:inline">Share</span>
+          <span className="hidden sm:inline">{t("share")}</span>
         </button>
 
         <span className="flex items-center gap-0.5 text-[10.5px] text-slate-400">

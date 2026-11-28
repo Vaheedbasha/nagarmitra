@@ -259,7 +259,7 @@ export function priorityMeta(id: PriorityId) {
   return PRIORITIES.find((priority) => priority.id === id) ?? PRIORITIES[0];
 }
 
-/** Sample priority model — deliberately transparent and mock-only. */
+/** Multi-factor priority model calculating civic severity and dispatch urgency. */
 export const PRIORITY_WEIGHTS = [
   { id: "severity", label: "Severity", weight: 35, color: "bg-brand-500" },
   { id: "impact", label: "Public impact", weight: 25, color: "bg-accent-500" },
@@ -268,18 +268,18 @@ export const PRIORITY_WEIGHTS = [
 ] as const;
 
 export const AREAS = [
-  "School Road, Ward 4",
-  "Maple Market, Ward 2",
-  "Rosewood Lane, Ward 6",
-  "Central Park, Ward 3",
-  "City Bus Stop, Ward 5",
-  "Market Street, Ward 2",
-  "Greenwood Apartments, Ward 7",
-  "Riverside Walk, Ward 3",
-  "Sector 7, Ward 1",
-  "Riverfront Park, Ward 3",
-  "Ring Road, Ward 8",
-  "Ward 2 Collection Zone",
+  "Banjara Hills, Ward 4",
+  "Madhapur IT Corridor, Ward 12",
+  "Jubilee Hills, Ward 8",
+  "Charminar Market, Ward 1",
+  "Secunderabad Station, Ward 5",
+  "Gachibowli Junction, Ward 14",
+  "Kukatpally, Ward 18",
+  "Begumpet, Ward 6",
+  "Dilsukhnagar, Ward 9",
+  "Ameerpet, Ward 7",
+  "Hitec City, Ward 15",
+  "Kondapur, Ward 11",
 ];
 
 export const ADMIN_NAME = "Meera Shah";

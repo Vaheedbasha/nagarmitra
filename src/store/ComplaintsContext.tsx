@@ -52,6 +52,7 @@ interface ComplaintsContextValue {
   decideVerification: (id: string, decision: VerificationDecision, note?: string) => Promise<void>;
   upvote: (id: string) => Promise<void>;
   addComment: (complaintId: string, text: string, author?: string) => Promise<void>;
+  deleteComplaint: (id: string) => Promise<boolean>;
   cities: string[];
   addCustomCity: (name: string) => string;
   selectedCity: string;
@@ -74,8 +75,18 @@ const ComplaintsContext = createContext<ComplaintsContextValue | null>(null);
 const CITY_KEY = "nagarmitra.city";
 const CUSTOM_CITIES_KEY = "nagarmitra_custom_cities";
 const LANGUAGE_KEY = "nagarmitra.language";
+const MY_REPORTS_CACHE_KEY = "nagarmitra_cached_my_reports";
 
 export const CITIES = PRESEEDED_INDIAN_CITIES;
+
+function getStoredMyReports(): Complaint[] {
+  try {
+    const raw = window.localStorage.getItem(MY_REPORTS_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as Complaint[]) : [];
+  } catch {
+    return [];
+  }
+}
 
 function getStoredCustomCities(): string[] {
   try {
@@ -92,7 +103,7 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
 
   const [customCities, setCustomCities] = useState<string[]>(() => getStoredCustomCities());
   const [complaints, setComplaints] = useState<Complaint[]>([]);
-  const [myComplaints, setMyComplaints] = useState<Complaint[]>([]);
+  const [myComplaints, setMyComplaints] = useState<Complaint[]>(() => getStoredMyReports());
   const [stats, setStats] = useState<ComplaintStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -189,8 +200,18 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       if (user) {
         const mine = await api<ComplaintList>("/api/complaints?mine=true&pageSize=100");
         setMyComplaints(mine.items);
+        try {
+          window.localStorage.setItem(MY_REPORTS_CACHE_KEY, JSON.stringify(mine.items));
+        } catch {
+          /* ignore */
+        }
       } else {
         setMyComplaints([]);
+        try {
+          window.localStorage.removeItem(MY_REPORTS_CACHE_KEY);
+        } catch {
+          /* ignore */
+        }
       }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not load complaints.");
@@ -298,6 +319,31 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
     [bump, toast]
   );
 
+  const deleteComplaint = useCallback(
+    async (id: string): Promise<boolean> => {
+      try {
+        await api(`/api/complaints/${encodeURIComponent(id)}`, { method: "DELETE" });
+        setComplaints((prev) => prev.filter((c) => c.id !== id));
+        setMyComplaints((prev) => {
+          const updated = prev.filter((c) => c.id !== id);
+          try {
+            window.localStorage.setItem(MY_REPORTS_CACHE_KEY, JSON.stringify(updated));
+          } catch {
+            /* ignore */
+          }
+          return updated;
+        });
+        bump();
+        toast({ title: "Report deleted", description: `Complaint ${id} was deleted successfully.`, variant: "success" });
+        return true;
+      } catch (err: any) {
+        toast({ title: "Failed to delete report", description: err.message, variant: "error" });
+        return false;
+      }
+    },
+    [bump, toast]
+  );
+
   const value = useMemo<ComplaintsContextValue>(
     () => ({
       complaints,
@@ -313,6 +359,7 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       decideVerification,
       upvote,
       addComment,
+      deleteComplaint,
       cities: allCities,
       addCustomCity,
       selectedCity,
@@ -335,6 +382,7 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
       decideVerification,
       upvote,
       addComment,
+      deleteComplaint,
       allCities,
       addCustomCity,
       selectedCity,
