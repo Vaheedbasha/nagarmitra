@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
-  Bell,
   Check,
   ChevronRight,
   KeyRound,
@@ -9,6 +8,7 @@ import {
   LayoutDashboard,
   Loader2,
   Lock,
+  LogOut,
   Mail,
   MapPin,
   Phone,
@@ -26,49 +26,11 @@ import { useComplaints } from "@/store/ComplaintsContext";
 import { useAuth } from "@/store/AuthContext";
 import { cn } from "@/lib/utils";
 
-function Toggle({
-  checked,
-  onChange,
-  label,
-  description,
-}: {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  label: string;
-  description: string;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4 py-3">
-      <div>
-        <p className="text-[12.5px] font-semibold text-slate-800">{label}</p>
-        <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{description}</p>
-      </div>
-      <button
-        type="button"
-        role="switch"
-        aria-checked={checked}
-        aria-label={label}
-        onClick={() => onChange(!checked)}
-        className={cn(
-          "focus-ring relative mt-0.5 h-5 w-9 shrink-0 rounded-full transition",
-          checked ? "bg-brand-600" : "bg-slate-200"
-        )}
-      >
-        <span
-          className={cn(
-            "absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition",
-            checked ? "left-[18px]" : "left-0.5"
-          )}
-        />
-      </button>
-    </div>
-  );
-}
-
 export default function Profile() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const { myComplaints, cities, selectedCity, setSelectedCity } = useComplaints();
-  const { user, updateProfile, changePassword } = useAuth();
+  const { user, updateProfile, changePassword, logout } = useAuth();
 
   // Profile fields state
   const [name, setName] = useState(user?.name ?? "");
@@ -85,17 +47,22 @@ export default function Profile() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
 
-  // Notification settings state
-  const [updates, setUpdates] = useState(true);
-  const [nearby, setNearby] = useState(true);
-  const [anonymous, setAnonymous] = useState(false);
-
   const myReports = myComplaints.length;
   const resolved = myComplaints.filter((c) => c.status === "resolved").length;
   const upvotes = myComplaints.reduce((sum, c) => sum + c.upvotes, 0);
   const displayName = name || user?.name || "Citizen";
   const displayCity = user?.city || selectedCity || "Hyderabad";
   const displayArea = area || user?.area || user?.ward || "Local Area";
+
+  const handleSignOut = async () => {
+    try {
+      await logout();
+      toast({ title: "Signed out successfully", variant: "info" });
+      navigate("/login");
+    } catch {
+      navigate("/login");
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -302,53 +269,42 @@ export default function Profile() {
 
         {/* Preferences & Security Column */}
         <div className="space-y-4">
-          {/* Notifications Settings */}
+          {/* Account Management Card */}
           <div className="surface p-4 sm:p-5">
-            <div className="mb-2 flex items-center gap-2 border-b border-line pb-2.5">
+            <div className="mb-3 flex items-center gap-2 border-b border-line pb-2.5">
               <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
-                <Bell size={15} />
+                <User size={15} />
               </span>
               <div>
-                <h2 className="text-[13.5px] font-bold text-slate-800">Alerts & Privacy</h2>
-                <p className="text-[10.5px] text-slate-400">Manage communication preferences</p>
+                <h2 className="text-[13.5px] font-bold text-slate-800">Account Management</h2>
+                <p className="text-[10.5px] text-slate-400">Session and operational controls</p>
               </div>
             </div>
 
-            <div className="divide-y divide-line">
-              <Toggle
-                checked={updates}
-                onChange={setUpdates}
-                label="Status Notifications"
-                description="Get notified when officials update your submitted reports."
-              />
-              <Toggle
-                checked={nearby}
-                onChange={setNearby}
-                label="Nearby Civic Alerts"
-                description="Digest of high-priority community issues in your ward."
-              />
-              <Toggle
-                checked={anonymous}
-                onChange={setAnonymous}
-                label="Report Anonymously"
-                description="Hide your name from public complaint feeds by default."
-              />
-            </div>
+            <div className="space-y-2.5">
+              {user?.role === "admin" || user?.role === "official" ? (
+                <Link
+                  to="/admin"
+                  className="flex w-full items-center justify-between rounded-xl border border-brand-200 bg-brand-50/80 p-3 text-xs font-bold text-brand-800 shadow-xs transition hover:bg-brand-100 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-2">
+                    <LayoutDashboard size={16} className="text-brand-600" />
+                    <span>Open Municipal Admin Console</span>
+                  </div>
+                  <ChevronRight size={14} className="text-brand-500" />
+                </Link>
+              ) : null}
 
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-3 w-full"
-              onClick={() =>
-                toast({
-                  title: "Preferences saved",
-                  description: "Your notification settings have been updated.",
-                  variant: "success",
-                })
-              }
-            >
-              Update Preferences
-            </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleSignOut}
+                className="w-full justify-center border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 active:scale-95"
+              >
+                <LogOut size={14} />
+                <span>Sign Out of NagarMitra</span>
+              </Button>
+            </div>
           </div>
 
           {/* Change Password Card */}

@@ -365,8 +365,8 @@ export default function ManualReport() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 sm:px-6 py-5 pb-24 sm:pb-10">
-      <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
-        <ArrowLeft size={14} /> Back to home
+      <Link to="/report" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
+        <ArrowLeft size={14} /> Back to Report Options
       </Link>
 
       <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
@@ -719,12 +719,6 @@ export default function ManualReport() {
             <Button type="submit" disabled={uploading || submitting}>
               Continue to review <ArrowRight size={15} />
             </Button>
-            <Link
-              to="/report/voice"
-              className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-line bg-white px-3 text-[12px] font-semibold text-slate-600 hover:border-slate-300"
-            >
-              <Mic size={14} className="text-brand-600" /> Use voice instead
-            </Link>
             <span className="text-[10.5px] text-slate-400">
               <Info size={11} className="mr-1 inline text-brand-600" /> Nothing is submitted until you confirm.
             </span>

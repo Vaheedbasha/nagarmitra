@@ -6,115 +6,134 @@ import {
   Mic,
   FileText,
   MapPin,
-  ArrowRight,
+  ChevronRight,
   ShieldCheck,
   Zap,
   Loader2,
+  Check,
+  X,
+  Navigation,
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
 import { CityPickerModal } from "@/components/citizen/CityPickerModal";
+import { Modal } from "@/components/ui/Modal";
+import { Button } from "@/components/ui/Button";
 import { compressImage } from "@/lib/imageCompression";
 import { uploadMedia } from "@/lib/api";
 import { getCurrentPosition, reverseGeocode, getCityCoordinates } from "@/lib/location";
+import { CATEGORIES } from "@/lib/constants";
+import type { CategoryId } from "@/types";
 
 const HUB_TRANSLATIONS = {
   en: {
     title: "Report an Issue",
-    subtitle: "Select your preferred reporting method. All options include automatic geotagging.",
+    subtitle: "Select your reporting method. All options include automatic geotagging.",
     cityLabel: "City",
     change: "Change",
     photoTitle: "One-Click Live Photo",
-    photoBadge: "Fastest (10 sec)",
-    photoDesc: "Snap photo evidence on-site. Your camera captures the issue and automatically tags live GPS coordinates.",
-    photoBtn: "Snap & Submit",
-    liveGps: "Live GPS",
+    photoBadge: "Fastest · 10s",
+    photoDesc: "Snap camera evidence with instant GPS geotagging & filing",
     chatTitle: "Chat Assistant",
     chatBadge: "Conversational",
-    chatDesc: "Chat naturally with our civic assistant. Describe what you see in Hindi, Telugu, or English, attach media, and review before filing.",
-    chatBtn: "Start Chat Report",
-    chatMeta: "Multi-lingual",
+    chatDesc: "Chat naturally in your own words with media & voice",
     voiceTitle: "Voice Note Report",
     voiceBadge: "No Typing",
-    voiceDesc: "Record a quick 30-second voice note. Real-time speech recognition transcribes your words into an official complaint.",
-    voiceBtn: "Record Voice",
-    voiceMeta: "Audio Speech",
+    voiceDesc: "Speak in Hindi, Telugu, or English for quick voice triage",
     formTitle: "Detailed Form",
     formBadge: "Standard Form",
-    formDesc: "Step-by-step form to manually select category, ward, address landmark, and attach multiple supporting files.",
-    formBtn: "Open Form",
-    formMeta: "Document Upload",
+    formDesc: "Step-by-step form with custom landmarks & multiple files",
     privacyTitle: "Citizen Privacy & Verification Guarantee",
-    privacyDesc: "Every submission is forwarded to the designated ward officer. Your name, email, and mobile number remain strictly confidential.",
-    activatingCamera: "Activating Camera…",
+    privacyDesc: "Every submission is routed directly to ward teams. Your personal identity remains strictly confidential.",
+    activatingCamera: "Opening Camera…",
+    submittingPhoto: "Submitting Complaint…",
+    submitNow: "Submit Official Complaint",
+    cancel: "Cancel",
+    photoModalTitle: "Confirm Live Photo Report",
+    selectCategory: "Issue Category",
+    issueTitle: "Title / Summary",
+    location: "Location",
   },
   hi: {
     title: "समस्या दर्ज करें",
-    subtitle: "अपनी पसंदीदा रिपोर्टिंग विधि चुनें। सभी विकल्पों में लाइव जीपीएस लोकेशन शामिल है।",
+    subtitle: "अपनी पसंदीदा रिपोर्टिंग विधि चुनें। सभी में लाइव जीपीएस शामिल है।",
     cityLabel: "शहर",
     change: "बदलें",
     photoTitle: "एक-क्लिक लाइव फोटो",
-    photoBadge: "सबसे तेज़ (10 सेकंड)",
-    photoDesc: "समस्या का सीधा फोटो खींचें। कैमरा अपने आप आपकी सटीक जीपीएस लोकेशन जोड़ देगा।",
-    photoBtn: "फोटो खींचें और भेजें",
-    liveGps: "लाइव जीपीएस",
+    photoBadge: "सबसे तेज़ · 10 से.",
+    photoDesc: "कैमरे से फोटो लें, स्वचालित जीपीएस टैग और तुरंत शिकायत दर्ज",
     chatTitle: "चैट सहायक",
     chatBadge: "बातचीत द्वारा",
-    chatDesc: "हमारे नागरिक सहायक से अपनी भाषा में बात करें। विवरण लिखें, मीडिया संलग्न करें और पुष्टि करके भेजें।",
-    chatBtn: "चैट शुरू करें",
-    chatMeta: "बहुभाषी",
+    chatDesc: "नागरिक सहायक से अपनी भाषा में बात करें और मीडिया भेजें",
     voiceTitle: "आवाज़ रिकॉर्ड करें",
     voiceBadge: "बिना लिखे",
-    voiceDesc: "30 सेकंड का वॉयस नोट रिकॉर्ड करें। आपकी आवाज़ सुनकर तुरंत शिकायत तैयार हो जाएगी।",
-    voiceBtn: "आवाज़ रिकॉर्ड करें",
-    voiceMeta: "ऑडियो आवाज़",
+    voiceDesc: "हिंदी, तेलुगु या अंग्रेज़ी में बोलकर त्वरित शिकायत दर्ज करें",
     formTitle: "विस्तृत फॉर्म",
     formBadge: "मानक फॉर्म",
-    formDesc: "श्रेणी, वार्ड, पता व लैंडमार्क चुनकर कई दस्तावेज़ व फोटो अपलोड करने के लिए मानक फॉर्म।",
-    formBtn: "फॉर्म खोलें",
-    formMeta: "दस्तावेज़ अपलोड",
+    formDesc: "श्रेणी, वार्ड और कई दस्तावेज़ अपलोड करने का मानक फॉर्म",
     privacyTitle: "नागरिक गोपनीयता व सत्यापन गारंटी",
-    privacyDesc: "हर शिकायत संबंधित वार्ड अधिकारी को भेजी जाती है। आपका नाम, ईमेल और मोबाइल नंबर पूरी तरह सुरक्षित रहेगा।",
+    privacyDesc: "हर शिकायत सीधे वार्ड टीम को भेजी जाती है। आपका डेटा पूरी तरह सुरक्षित है।",
     activatingCamera: "कैमरा शुरू हो रहा है…",
+    submittingPhoto: "शिकायत दर्ज हो रही है…",
+    submitNow: "अधिकारिक शिकायत दर्ज करें",
+    cancel: "रद्द करें",
+    photoModalTitle: "लाइव फोटो रिपोर्ट की पुष्टि करें",
+    selectCategory: "समस्या की श्रेणी",
+    issueTitle: "शीर्षक / संक्षिप्त विवरण",
+    location: "स्थान",
   },
   te: {
     title: "సమస్యను నివేదించండి",
-    subtitle: "మీకు అనుకూలమైన నివేదన విధానాన్ని ఎంచుకోండి. అన్నింటిలో ఆటోమేటిక్ జీపీఎస్ ఉంటుంది.",
+    subtitle: "మీకు అనుకూలమైన విధానాన్ని ఎంచుకోండి. అన్నింటిలో ఆటోమేటిక్ జీపీఎస్ ఉంటుంది.",
     cityLabel: "నగరం",
     change: "మార్చండి",
     photoTitle: "ఒకే-క్లిక్ లైవ్ ఫోటో",
-    photoBadge: "అత్యంత వేగవంతమైనది (10 సెక)",
-    photoDesc: "సమస్య వద్ద లైవ్ ఫోటో తీయండి. కెమెరా స్వయంచాలకంగా మీ ఖచ్చితమైన జీపీఎస్ స్థానాన్ని రికార్డు చేస్తుంది.",
-    photoBtn: "ఫోటో తీసి పంపండి",
-    liveGps: "లైవ్ జీపీఎస్",
+    photoBadge: "అత్యంత వేగం · 10సె.",
+    photoDesc: "లైవ్ ఫోటో తీయండి, జీపీఎస్ స్థానం ఆటోమేటిక్‌గా నమోదు అవుతుంది",
     chatTitle: "చాట్ అసిస్టెంట్",
-    chatBadge: "సంభాషణ ద్వారా",
-    chatDesc: "మీ భాషలో సహాయకుడితో మాట్లాడండి. సమస్యను వివరించండి, ఫోటోలు జతచేయండి మరియు సమీక్షించండి.",
-    chatBtn: "చాట్ ప్రారంభించండి",
-    chatMeta: "బహుభాషా",
+    chatBadge: "సంభాషణ",
+    chatDesc: "మీ భాషలో మాట్లాడి మీడియా మరియు వివరాలను పంపండి",
     voiceTitle: "వాయిస్ నోట్ రిపోర్ట్",
-    voiceBadge: "టైప్ చేయనవసరం లేదు",
-    voiceDesc: "30 సెకన్ల వాయిస్ రికార్డ్ చేయండి. మీ మాటలను గుర్తించి వెంటనే ఫిర్యాదును సిద్ధం చేస్తుంది.",
-    voiceBtn: "వాయిస్ రికార్డ్ చేయండి",
-    voiceMeta: "ఆడియో మాటలు",
+    voiceBadge: "టైపింగ్ వద్దు",
+    voiceDesc: "తెలుగు, హిందీ లేదా ఇంగ్లీషులో మాట్లాడి సులభంగా నివేదించండి",
     formTitle: "వివరమైన ఫారం",
-    formBadge: "ప్రామాణిక ఫారం",
-    formDesc: "వర్గం, వార్డు, ల్యాండ్‌మార్క్ ఎంచుకుని ఫైళ్లను అప్‌లోడ్ చేయడానికి స్టెప్ బై స్టెప్ ఫారం.",
-    formBtn: "ఫారం తెరవండి",
-    formMeta: "ఫైళ్ల అప్‌లోడ్",
+    formBadge: "ప్రామాణికం",
+    formDesc: "వర్గం, ల్యాండ్‌మార్క్ ఎంచుకుని ఫైళ్లను అప్‌లోడ్ చేసే పూర్తి ఫారం",
     privacyTitle: "పౌర గోప్యత & ధృవీకరణ హామీ",
-    privacyDesc: "ప్రతి ఫిర్యాదు సంబంధిత వార్డు అధికారికి వెళ్తుంది. మీ పేరు, ఇమెయిల్, మొబైల్ నంబర్ పూర్తిగా సురక్షితంగా ఉంటాయి.",
+    privacyDesc: "ప్రతి ఫిర్యాదు సంబంధిత వార్డు అధికార బృందానికి చేరుతుంది. మీ డేటా సురక్షితం.",
     activatingCamera: "కెమెరా ఆన్ అవుతోంది…",
+    submittingPhoto: "ఫిర్యాదు దాఖలవుతోంది…",
+    submitNow: "అధికారిక ఫిర్యాదును సమర్పించండి",
+    cancel: "రద్దు చేయండి",
+    photoModalTitle: "లైవ్ ఫోటో నివేదిక నిర్ధారణ",
+    selectCategory: "సమస్య వర్గం",
+    issueTitle: "శీర్షిక / వివరణ",
+    location: "స్థానం",
   },
 };
 
+interface PendingPhotoData {
+  photoUrl: string;
+  mediaId: string;
+  address: string;
+  lat: number;
+  lng: number;
+  category: CategoryId;
+  title: string;
+}
+
 export default function ReportHub() {
   const navigate = useNavigate();
-  const { selectedCity, language } = useComplaints();
+  const { selectedCity, language, createComplaint } = useComplaints();
   const t = HUB_TRANSLATIONS[language] || HUB_TRANSLATIONS.en;
   const { toast } = useToast();
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [capturingPhoto, setCapturingPhoto] = useState(false);
+  const [submittingPhoto, setSubmittingPhoto] = useState(false);
+
+  // In-place self-contained live photo modal state
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [photoData, setPhotoData] = useState<PendingPhotoData | null>(null);
 
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
@@ -137,7 +156,7 @@ export default function ReportHub() {
     });
 
     try {
-      // 1. Fast client-side compression (converts 15MB to ~120KB in 30ms)
+      // 1. Fast client-side compression (converts phone camera to ~120KB in ~30ms)
       const compressed = await compressImage(file, 1280, 0.82);
 
       // 2. Parallel upload and GPS capture
@@ -166,31 +185,69 @@ export default function ReportHub() {
       const mediaId = uploadRes.status === "fulfilled" ? uploadRes.value.id : `local-${Date.now()}`;
       const location = locRes.status === "fulfilled" ? locRes.value : { lat: 17.385, lng: 78.4867, address: selectedCity };
 
-      // Store in session storage so ChatReport can immediately load it as active draft
-      sessionStorage.setItem(
-        "nagarmitra_pending_photo_report",
-        JSON.stringify({
-          mediaUrl,
-          mediaId,
-          lat: location.lat,
-          lng: location.lng,
-          address: location.address,
-        })
-      );
-
-      navigate("/report/chat?source=live_photo");
+      // Set self-contained live photo modal data (NO CHAT REDIRECT)
+      setPhotoData({
+        photoUrl: mediaUrl,
+        mediaId,
+        lat: location.lat,
+        lng: location.lng,
+        address: location.address,
+        category: "roads",
+        title: `Civic issue reported via live photo in ${selectedCity}`,
+      });
+      setPhotoModalOpen(true);
     } catch (err: any) {
       toast({
         title: "Could not process photo",
-        description: err.message || "Please try again or use the chat assistant.",
+        description: err.message || "Please try again.",
         variant: "error",
       });
+    } finally {
       setCapturingPhoto(false);
     }
   };
 
+  const handleDirectPhotoSubmit = async () => {
+    if (!photoData) return;
+    setSubmittingPhoto(true);
+    try {
+      const description = `Live photo evidence recorded on-site at ${photoData.address}. Citizen captured real-time photo with verified GPS coordinates for municipal dispatch.`;
+      const created = await createComplaint({
+        title: photoData.title.trim() || `Civic issue reported via live photo in ${selectedCity}`,
+        description,
+        category: photoData.category,
+        severity: "medium",
+        city: selectedCity,
+        location: photoData.address,
+        area: photoData.address.split(",")[0]?.trim() || selectedCity,
+        lat: photoData.lat,
+        lng: photoData.lng,
+        mediaIds: photoData.mediaId ? [photoData.mediaId] : [],
+        aiSummary: description,
+      });
+
+      toast({
+        title: "Complaint submitted successfully!",
+        description: `#${created.id} has been logged in ${selectedCity}.`,
+        variant: "success",
+      });
+
+      setPhotoModalOpen(false);
+      setPhotoData(null);
+      navigate(`/complaint/${created.id}`);
+    } catch (error: any) {
+      toast({
+        title: "Submission failed",
+        description: error.message || "Please check your network and try again.",
+        variant: "error",
+      });
+    } finally {
+      setSubmittingPhoto(false);
+    }
+  };
+
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-3 py-4 sm:px-6 sm:py-6">
+    <div className="mx-auto w-full max-w-2xl px-3 py-4 sm:px-6 sm:py-6 pb-24 sm:pb-12">
       {/* Hidden Native Camera Input with capture="environment" */}
       <input
         ref={cameraInputRef}
@@ -201,190 +258,261 @@ export default function ReportHub() {
         onChange={handleLiveCameraCapture}
       />
 
-      {/* Header section */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-line pb-4">
-        <div>
+      {/* Header section - compact & minimal */}
+      <div className="flex items-center justify-between border-b border-line pb-3.5">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-50 text-brand-600">
               <Zap size={16} />
             </span>
-            <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">
+            <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 truncate">
               {t.title}
             </h1>
           </div>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-0.5 text-[11px] sm:text-xs text-slate-500 truncate">
             {t.subtitle}
           </p>
         </div>
 
         <button
           onClick={() => setCityPickerOpen(true)}
-          className="inline-flex items-center gap-1.5 self-start rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-brand-300 hover:text-brand-600 sm:self-auto"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-line bg-white px-2.5 py-1.5 text-[11.5px] font-semibold text-slate-700 shadow-2xs transition hover:border-brand-300 hover:text-brand-600 active:scale-95 ml-2"
         >
           <MapPin size={13} className="text-brand-600" />
-          <span>{t.cityLabel}: {selectedCity}</span>
-          <span className="text-[10px] text-slate-400">{t.change}</span>
+          <span className="truncate max-w-[90px] sm:max-w-none">{selectedCity}</span>
+          <span className="text-[10px] text-slate-400 font-normal">{t.change}</span>
         </button>
       </div>
 
-      {/* Primary Reporting Modes Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* 1. One-Click Live Photo */}
+      {/* Primary Reporting Modes - Minimal, Mobile-First Action Cards */}
+      <div className="mt-4 space-y-2.5">
+        {/* 1. One-Click Live Photo (Self-Contained) */}
         <div
           onClick={triggerLiveCamera}
-          className="group surface surface-hover relative flex cursor-pointer flex-col justify-between overflow-hidden p-5 transition active:scale-[0.99] border-2 border-emerald-500/20 hover:border-emerald-500"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && triggerLiveCamera()}
+          className="group surface surface-hover flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl cursor-pointer transition active:scale-[0.99] border border-emerald-500/25 hover:border-emerald-500 shadow-2xs"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 transition group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white">
-                <Camera size={24} />
-              </span>
-              <span className="rounded-full bg-emerald-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-800">
-                {t.photoBadge}
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-700">
-                {t.photoTitle}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                {t.photoDesc}
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 transition group-hover:scale-105 group-hover:bg-emerald-600 group-hover:text-white">
+              {capturingPhoto ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-[13.5px] sm:text-[14px] font-bold text-slate-900 group-hover:text-emerald-700 truncate">
+                  {t.photoTitle}
+                </h2>
+                <span className="rounded-full bg-emerald-100/80 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                  {t.photoBadge}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] sm:text-[11.5px] text-slate-500 truncate">
+                {capturingPhoto ? t.activatingCamera : t.photoDesc}
               </p>
             </div>
           </div>
-
-          <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
-            <span className="text-[11px] font-bold text-emerald-700 flex items-center gap-1">
-              {capturingPhoto ? (
-                <>
-                  <Loader2 size={13} className="animate-spin" />
-                  <span>{t.activatingCamera}</span>
-                </>
-              ) : (
-                <>
-                  <span>{t.photoBtn}</span>
-                  <ArrowRight size={13} className="transition group-hover:translate-x-1" />
-                </>
-              )}
-            </span>
-            <span className="text-[10.5px] text-slate-400">{t.liveGps}</span>
-          </div>
+          <ChevronRight size={18} className="text-slate-300 group-hover:text-emerald-600 transition shrink-0" />
         </div>
 
-        {/* 2. AI Chat Assistant */}
+        {/* 2. Chat Assistant (Self-Contained) */}
         <Link
           to="/report/chat"
-          className="group surface surface-hover relative flex flex-col justify-between overflow-hidden p-5 transition active:scale-[0.99] border-2 border-brand-500/20 hover:border-brand-500"
+          className="group surface surface-hover flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl transition active:scale-[0.99] border border-brand-500/25 hover:border-brand-500 shadow-2xs"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-brand-600 transition group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white">
-                <MessageSquare size={24} />
-              </span>
-              <span className="rounded-full bg-brand-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-brand-800">
-                {t.chatBadge}
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 group-hover:text-brand-700">
-                {t.chatTitle}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-50 text-brand-600 transition group-hover:scale-105 group-hover:bg-brand-600 group-hover:text-white">
+              <MessageSquare size={20} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-[13.5px] sm:text-[14px] font-bold text-slate-900 group-hover:text-brand-700 truncate">
+                  {t.chatTitle}
+                </h2>
+                <span className="rounded-full bg-brand-100/80 px-2 py-0.5 text-[10px] font-bold text-brand-800">
+                  {t.chatBadge}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] sm:text-[11.5px] text-slate-500 truncate">
                 {t.chatDesc}
               </p>
             </div>
           </div>
-
-          <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
-            <span className="text-[11px] font-bold text-brand-700 flex items-center gap-1">
-              <span>{t.chatBtn}</span>
-              <ArrowRight size={13} className="transition group-hover:translate-x-1" />
-            </span>
-            <span className="text-[10.5px] text-slate-400">{t.chatMeta}</span>
-          </div>
+          <ChevronRight size={18} className="text-slate-300 group-hover:text-brand-600 transition shrink-0" />
         </Link>
 
-        {/* 3. Voice Report */}
+        {/* 3. Voice Note Report (Self-Contained) */}
         <Link
           to="/report/voice"
-          className="group surface surface-hover relative flex flex-col justify-between overflow-hidden p-5 transition active:scale-[0.99] border-2 border-rose-500/20 hover:border-rose-500"
+          className="group surface surface-hover flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl transition active:scale-[0.99] border border-rose-500/25 hover:border-rose-500 shadow-2xs"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-50 text-rose-600 transition group-hover:scale-105 group-hover:bg-rose-600 group-hover:text-white">
-                <Mic size={24} />
-              </span>
-              <span className="rounded-full bg-rose-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-rose-800">
-                {t.voiceBadge}
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 group-hover:text-rose-700">
-                {t.voiceTitle}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600 transition group-hover:scale-105 group-hover:bg-rose-600 group-hover:text-white">
+              <Mic size={20} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-[13.5px] sm:text-[14px] font-bold text-slate-900 group-hover:text-rose-700 truncate">
+                  {t.voiceTitle}
+                </h2>
+                <span className="rounded-full bg-rose-100/80 px-2 py-0.5 text-[10px] font-bold text-rose-800">
+                  {t.voiceBadge}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] sm:text-[11.5px] text-slate-500 truncate">
                 {t.voiceDesc}
               </p>
             </div>
           </div>
-
-          <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
-            <span className="text-[11px] font-bold text-rose-700 flex items-center gap-1">
-              <span>{t.voiceBtn}</span>
-              <ArrowRight size={13} className="transition group-hover:translate-x-1" />
-            </span>
-            <span className="text-[10.5px] text-slate-400">{t.voiceMeta}</span>
-          </div>
+          <ChevronRight size={18} className="text-slate-300 group-hover:text-rose-600 transition shrink-0" />
         </Link>
 
-        {/* 4. Detailed Form */}
+        {/* 4. Detailed Manual Form (Self-Contained) */}
         <Link
           to="/report/manual"
-          className="group surface surface-hover relative flex flex-col justify-between overflow-hidden p-5 transition active:scale-[0.99] border-2 border-slate-300/40 hover:border-slate-500"
+          className="group surface surface-hover flex items-center justify-between gap-3 p-3.5 sm:p-4 rounded-2xl transition active:scale-[0.99] border border-amber-500/25 hover:border-amber-500 shadow-2xs"
         >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-700 transition group-hover:scale-105 group-hover:bg-slate-700 group-hover:text-white">
-                <FileText size={24} />
-              </span>
-              <span className="rounded-full bg-slate-200/70 px-2.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-                {t.formBadge}
-              </span>
-            </div>
-
-            <div>
-              <h2 className="text-base font-extrabold text-slate-900 group-hover:text-slate-800">
-                {t.formTitle}
-              </h2>
-              <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition group-hover:scale-105 group-hover:bg-amber-600 group-hover:text-white">
+              <FileText size={20} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <h2 className="text-[13.5px] sm:text-[14px] font-bold text-slate-900 group-hover:text-amber-700 truncate">
+                  {t.formTitle}
+                </h2>
+                <span className="rounded-full bg-amber-100/80 px-2 py-0.5 text-[10px] font-bold text-amber-800">
+                  {t.formBadge}
+                </span>
+              </div>
+              <p className="mt-0.5 text-[11px] sm:text-[11.5px] text-slate-500 truncate">
                 {t.formDesc}
               </p>
             </div>
           </div>
-
-          <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
-            <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-              <span>{t.formBtn}</span>
-              <ArrowRight size={13} className="transition group-hover:translate-x-1" />
-            </span>
-            <span className="text-[10.5px] text-slate-400">{t.formMeta}</span>
-          </div>
+          <ChevronRight size={18} className="text-slate-300 group-hover:text-amber-600 transition shrink-0" />
         </Link>
       </div>
 
-      {/* Assurance banner */}
-      <div className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4 text-xs text-slate-600">
-        <ShieldCheck size={18} className="text-brand-600 shrink-0 mt-0.5" />
-        <div className="space-y-0.5">
-          <p className="font-semibold text-slate-800">{t.privacyTitle}</p>
-          <p className="text-[11px] leading-relaxed text-slate-500">
-            {t.privacyDesc}
-          </p>
+      {/* Citizen Trust & Privacy Banner */}
+      <div className="mt-5 rounded-2xl border border-line/80 bg-slate-50/80 p-3 sm:p-3.5">
+        <div className="flex items-start gap-2.5">
+          <ShieldCheck size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+          <div>
+            <h3 className="text-[12px] font-bold text-slate-800">{t.privacyTitle}</h3>
+            <p className="mt-0.5 text-[10.5px] leading-relaxed text-slate-500">
+              {t.privacyDesc}
+            </p>
+          </div>
         </div>
       </div>
+
+      {/* Self-Contained Live Photo Direct Submission Modal */}
+      {photoModalOpen && photoData && (
+        <Modal open={photoModalOpen} onClose={() => !submittingPhoto && setPhotoModalOpen(false)}>
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between border-b border-line pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+                  <Camera size={16} />
+                </span>
+                <h2 className="text-[14px] font-bold text-slate-900">{t.photoModalTitle}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPhotoModalOpen(false)}
+                disabled={submittingPhoto}
+                className="rounded-lg p-1 text-slate-400 hover:text-slate-600"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Photo preview thumbnail */}
+            <div className="relative overflow-hidden rounded-xl border border-line bg-black/5">
+              <img
+                src={photoData.photoUrl}
+                alt="Live photo capture"
+                className="max-h-48 w-full object-cover"
+              />
+              <span className="absolute bottom-2 left-2 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur">
+                Live Photo Evidence
+              </span>
+            </div>
+
+            {/* Location with GPS Pin */}
+            <div className="rounded-xl border border-line bg-slate-50 p-2.5">
+              <div className="flex items-start gap-2">
+                <Navigation size={14} className="mt-0.5 shrink-0 text-brand-600" />
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t.location}</p>
+                  <p className="text-[12px] font-semibold text-slate-800 truncate">{photoData.address}</p>
+                  <p className="text-[10px] font-mono text-slate-400">
+                    GPS: {photoData.lat.toFixed(4)}, {photoData.lng.toFixed(4)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Issue Category Chips */}
+            <div>
+              <label className="field-label mb-1.5">{t.selectCategory}</label>
+              <div className="flex flex-wrap gap-1.5">
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    onClick={() => setPhotoData({ ...photoData, category: cat.id })}
+                    className={`rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition ${
+                      photoData.category === cat.id
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-800 shadow-2xs"
+                        : "border-line bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {cat.short}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Title / Summary */}
+            <div>
+              <label htmlFor="photo-report-title" className="field-label mb-1">{t.issueTitle}</label>
+              <input
+                id="photo-report-title"
+                type="text"
+                value={photoData.title}
+                onChange={(e) => setPhotoData({ ...photoData, title: e.target.value })}
+                className="field text-xs"
+                placeholder="Brief title of the issue"
+                required
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 pt-2 border-t border-line">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPhotoModalOpen(false)}
+                disabled={submittingPhoto}
+                className="flex-1"
+              >
+                {t.cancel}
+              </Button>
+              <Button
+                type="button"
+                onClick={handleDirectPhotoSubmit}
+                disabled={submittingPhoto || photoData.title.trim().length < 5}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              >
+                {submittingPhoto ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                <span>{submittingPhoto ? t.submittingPhoto : t.submitNow}</span>
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       <CityPickerModal open={cityPickerOpen} onClose={() => setCityPickerOpen(false)} />
     </div>

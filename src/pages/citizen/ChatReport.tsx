@@ -700,9 +700,9 @@ export default function ChatReport() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/report")}
             className="flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-white text-slate-600 hover:bg-slate-50 transition"
-            aria-label="Back"
+            aria-label="Back to Report Hub"
           >
             <ArrowLeft size={16} />
           </button>
@@ -713,9 +713,6 @@ export default function ChatReport() {
             </p>
           </div>
         </div>
-        <Link to="/report/manual" className="text-[11.5px] font-semibold text-brand-600 hover:underline">
-          Use form instead
-        </Link>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
@@ -1139,7 +1136,7 @@ export default function ChatReport() {
               </p>
               <ol className="mt-2.5 space-y-2 text-[11.5px] leading-relaxed text-slate-600">
                 <li className="flex items-start gap-1.5">
-                  <span className="font-bold text-brand-600">1.</span> Describe any issue or take a live photo.
+                  <span className="font-bold text-brand-600">1.</span> Describe any civic issue or attach media.
                 </li>
                 <li className="flex items-start gap-1.5">
                   <span className="font-bold text-brand-600">2.</span> Live GPS automatically resolves your exact street.
@@ -1148,17 +1145,6 @@ export default function ChatReport() {
                   <span className="font-bold text-brand-600">3.</span> Review the draft card and tap Confirm to dispatch crews.
                 </li>
               </ol>
-
-              <div className="mt-4 border-t border-line/60 pt-3">
-                <button
-                  type="button"
-                  onClick={() => liveCameraInputRef.current?.click()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-50 border border-brand-200 py-2.5 text-xs font-bold text-brand-700 hover:bg-brand-100 transition shadow-xs"
-                >
-                  <Camera size={15} />
-                  <span>Take Live Photo (1-Click)</span>
-                </button>
-              </div>
             </div>
           ) : (
             <div className="surface p-4 animate-scale-in">

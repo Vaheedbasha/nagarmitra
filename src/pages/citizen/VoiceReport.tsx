@@ -8,7 +8,9 @@ import {
   Info,
   Languages,
   Loader2,
+  MapPin,
   Mic,
+  Navigation,
   Pencil,
   RotateCcw,
   Sparkles,
@@ -21,6 +23,7 @@ import { useComplaints } from "@/store/ComplaintsContext";
 import { api } from "@/lib/api";
 import { CATEGORIES, categoryMeta } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { getCurrentPosition, reverseGeocode, getCityCoordinates } from "@/lib/location";
 import type { CategoryId } from "@/types";
 import type { Language } from "@/lib/translations";
 
@@ -93,7 +96,7 @@ function ruleBasedDraft(text: string, language: Language) {
 export default function VoiceReport() {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { language, setLanguage, selectedCity } = useComplaints();
+  const { language, setLanguage, selectedCity, createComplaint } = useComplaints();
 
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
@@ -105,6 +108,12 @@ export default function VoiceReport() {
   const [error, setError] = useState<string | null>(null);
   const [supported, setSupported] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [locating, setLocating] = useState(false);
+  const [address, setAddress] = useState(selectedCity);
+  const [lat, setLat] = useState(() => getCityCoordinates(selectedCity).lat);
+  const [lng, setLng] = useState(() => getCityCoordinates(selectedCity).lng);
+
   const [draft, setDraft] = useState<{
     title: string;
     summary: string;
@@ -289,23 +298,62 @@ export default function VoiceReport() {
     }
   };
 
-  const proceed = () => {
+  const detectLocation = async () => {
+    setLocating(true);
+    try {
+      const pos = await getCurrentPosition();
+      setLat(pos.lat);
+      setLng(pos.lng);
+      try {
+        const geo = await reverseGeocode(pos.lat, pos.lng);
+        if (geo.fullAddress) setAddress(geo.fullAddress);
+        else setAddress(`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`);
+      } catch {
+        setAddress(`${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}`);
+      }
+      toast({ title: "Live GPS location detected", variant: "success" });
+    } catch (e: any) {
+      toast({ title: "Could not get live location", description: e.message || "Using city center", variant: "error" });
+    } finally {
+      setLocating(false);
+    }
+  };
+
+  const submitVoiceReport = async () => {
     if (!draft) return;
-    navigate("/report/manual", {
-      state: {
-        title: draft.title,
-        description: draft.summary,
+    const title = draft.title.trim() || "Civic issue reported by voice";
+    const description = draft.summary.trim() || transcript.trim();
+    if (description.length < 25) {
+      toast({ title: "Please provide a little more detail (min 25 characters)", variant: "error" });
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const created = await createComplaint({
+        title,
+        description,
         category: draft.category,
+        severity: (draft.severity as any) || "medium",
+        city: selectedCity,
+        location: address || selectedCity,
+        area: address.split(",")[0]?.trim() || selectedCity,
+        lat,
+        lng,
         aiSummary: draft.summary,
-        aiSource: draft.source,
-      },
-    });
+      });
+      toast({ title: "Complaint submitted successfully!", description: `#${created.id}`, variant: "success" });
+      navigate(`/complaint/${created.id}`);
+    } catch (err: any) {
+      toast({ title: "Submission failed", description: err.message || "Try again", variant: "error" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <div className="mx-auto max-w-2xl px-4 sm:px-6 py-5 pb-24 sm:pb-10">
-      <Link to="/" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
-        <ArrowLeft size={14} /> Back to home
+      <Link to="/report" className="mb-4 inline-flex items-center gap-1.5 text-[12px] font-semibold text-slate-500 hover:text-slate-900">
+        <ArrowLeft size={14} /> Back to Report Options
       </Link>
 
       <div className="mb-5">
@@ -509,13 +557,34 @@ export default function VoiceReport() {
                   </button>
                 ))}
               </div>
-              <Button className="mt-3 w-full" onClick={proceed}>
-                Continue to location & evidence <ArrowRight size={15} />
+
+              {/* In-place Location Picker */}
+              <div className="mt-3 rounded-xl border border-brand-100 bg-white p-2.5 shadow-2xs">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <MapPin size={14} className="text-brand-600 shrink-0" />
+                    <span className="text-[11.5px] font-semibold text-slate-700 truncate">{address}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={detectLocation}
+                    disabled={locating}
+                    className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-brand-50 px-2 py-1 text-[10.5px] font-bold text-brand-700 hover:bg-brand-100 transition active:scale-95"
+                  >
+                    {locating ? <Loader2 size={11} className="animate-spin" /> : <Navigation size={11} />}
+                    <span>{locating ? "Locating…" : "Use Live GPS"}</span>
+                  </button>
+                </div>
+              </div>
+
+              <Button className="mt-3 w-full font-bold shadow-sm" onClick={submitVoiceReport} disabled={submitting}>
+                {submitting ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />}
+                <span>{submitting ? "Submitting Complaint…" : "Submit Official Complaint"}</span>
               </Button>
               <p className="mt-1.5 text-[9.5px] leading-relaxed text-brand-700/70">
                 {draft.source === "ai"
-                  ? "AI suggested this draft from your transcript. It is a suggestion, not a verified fact."
-                  : "AI is not configured on this server, so this draft uses a transparent keyword rule."}
+                  ? "AI suggested this draft from your transcript. Review details above before submitting."
+                  : "Draft generated from transparent civic keywords. Review details above before submitting."}
               </p>
             </div>
           ) : null}

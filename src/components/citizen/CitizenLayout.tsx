@@ -136,7 +136,7 @@ export function CitizenLayout() {
 
                 <button
                   onClick={signOut}
-                  className="focus-ring rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-red-600"
+                  className="focus-ring hidden sm:inline-flex rounded-lg p-2 text-slate-400 transition hover:bg-slate-50 hover:text-red-600"
                   aria-label={t("logout")}
                   title={t("logout")}
                 >
@@ -168,7 +168,12 @@ export function CitizenLayout() {
 
       {!isChatRoute && (
         <footer className="hidden border-t border-line bg-white/60 py-5 text-center text-[11px] text-slate-400 md:block">
-          NagarMitra · Official Civic Intelligence Platform · Dedicated to Citizen Empowerment & Urban Development
+          <div>NagarMitra · Official Civic Intelligence Platform · Dedicated to Citizen Empowerment & Urban Development</div>
+          <div className="mt-1.5 flex items-center justify-center gap-4 text-[10.5px]">
+            <Link to={user?.role === "admin" || user?.role === "official" ? "/admin" : "/login"} className="text-slate-500 hover:text-brand-600 transition underline">
+              {user?.role === "admin" || user?.role === "official" ? "Municipal Admin Operations Console" : "Official Staff & Admin Portal"}
+            </Link>
+          </div>
         </footer>
       )}
 

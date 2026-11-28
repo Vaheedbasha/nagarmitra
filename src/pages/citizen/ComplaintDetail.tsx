@@ -156,7 +156,8 @@ export default function ComplaintDetail() {
   const handlePostComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
-    addComment(complaint.id, commentText.trim(), "Ananya Rao");
+    const authorName = user?.name || "Citizen";
+    addComment(complaint.id, commentText.trim(), authorName);
     setCommentText("");
     toast({
       title: "Update posted",
@@ -220,6 +221,31 @@ export default function ComplaintDetail() {
         </div>
       </div>
 
+      {/* Dedicated Owner Management Banner */}
+      {isOwnReport && (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2.5 rounded-2xl border border-brand-200 bg-brand-50/70 p-3 sm:px-4 shadow-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-700">
+              <Check size={15} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-[12px] font-bold text-brand-900 truncate">Your Submitted Report</p>
+              <p className="text-[10.5px] text-brand-700 truncate">
+                {complaint.upvotes} community confirmation{complaint.upvotes === 1 ? "" : "s"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setDeleteConfirmOpen(true)}
+            className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-[11.5px] font-semibold text-red-600 shadow-xs transition hover:bg-red-50 hover:text-red-700 active:scale-95 shrink-0"
+            title="Delete your report"
+          >
+            <Trash2 size={13} className="text-red-600" />
+            <span>Delete Report</span>
+          </button>
+        </div>
+      )}
+
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0 space-y-4">
           {/* Main Civic Post Card */}
@@ -266,29 +292,7 @@ export default function ComplaintDetail() {
             <div className="border-t border-line/80 bg-slate-50/70 px-3 py-2.5 sm:px-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-1.5 sm:gap-2">
-                  {/* Confirm Issue / Upvote or Delete for Own Reports */}
-                  {isOwnReport ? (
-                    <div className="flex items-center gap-1.5">
-                      <div
-                        className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-200 bg-brand-50/70 px-3 text-[12px] font-semibold text-brand-700"
-                        title="You reported this complaint. Community members can verify and confirm."
-                      >
-                        <Check size={14} className="text-brand-600" />
-                        <span>Your Report</span>
-                        <span className="rounded-md bg-brand-100/80 px-1.5 py-0.5 font-mono text-[10.5px] text-brand-800">
-                          {complaint.upvotes}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => setDeleteConfirmOpen(true)}
-                        className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-red-200 bg-red-50/80 px-2.5 text-[11.5px] font-semibold text-red-700 shadow-xs transition hover:bg-red-100 active:scale-95"
-                        title="Delete your report"
-                      >
-                        <Trash2 size={13} className="text-red-600" />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  ) : (
+                  {!isOwnReport ? (
                     <button
                       onClick={handleConfirm}
                       disabled={hasConfirmed}
@@ -306,7 +310,7 @@ export default function ComplaintDetail() {
                         {complaint.upvotes}
                       </span>
                     </button>
-                  )}
+                  ) : null}
 
                   {/* Comments button */}
                   <button
@@ -410,7 +414,15 @@ export default function ComplaintDetail() {
               />
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-[10px] text-slate-400">
-                  Posting as <span className="font-semibold text-slate-600">Ananya Rao</span> (Ward 4 Resident)
+                  Posting as{" "}
+                  <span className="font-semibold text-slate-700">{user?.name || "Citizen"}</span>{" "}
+                  ({user?.role === "admin" || user?.role === "official"
+                    ? "Municipal Team"
+                    : user?.area
+                      ? `${user.area} Resident`
+                      : user?.city
+                        ? `${user.city} Resident`
+                        : "Verified Resident"})
                 </p>
                 <Button type="submit" size="sm" disabled={!commentText.trim()}>
                   <Send size={12} />
