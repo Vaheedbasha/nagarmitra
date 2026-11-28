@@ -83,7 +83,7 @@ authRouter.post("/register", async (req, res) => {
   try {
     execute(
       `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 1, ?, ?)`,
       [id, name, email, phone, hashPassword(password), city, area, language, at, at]
     );
   } catch {
@@ -92,7 +92,7 @@ authRouter.post("/register", async (req, res) => {
     } catch {}
     execute(
       `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 1, ?, ?)`,
       [id, name, email, phone, hashPassword(password), city, area, language, at, at]
     );
   }
@@ -151,6 +151,7 @@ authRouter.post("/register", async (req, res) => {
     user: publicUser(readSessionUser(id)),
     emailSent: emailResult.sent,
     previewUrl: emailResult.previewUrl,
+    verifyToken,
     emailError: emailResult.error,
   });
 });
@@ -358,6 +359,82 @@ authRouter.post("/change-password", requireAuth, async (req, res) => {
     }
   }
   res.json({ ok: true, token: session.token });
+});
+
+authRouter.post("/verify-instant", requireAuth, async (req, res) => {
+  execute("UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?", [nowIso(), req.user!.id]);
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] verify-instant sync error:", e);
+    }
+  }
+  const user = readSessionUser(req.user!.id);
+  res.json({
+    ok: true,
+    message: "Email verified successfully! Your account is now fully active.",
+    user: user ? publicUser(user) : undefined,
+  });
+});
+
+authRouter.post("/recover-account", async (req, res) => {
+  const email = text(req.body?.email, 160).toLowerCase();
+  const phone = text(req.body?.phone, 30);
+  const password = text(req.body?.password, 200);
+
+  if (!isEmail(email)) return bad(res, 400, "Please enter a valid registered email address.");
+  if (!phone) return bad(res, 400, "Please enter your registered phone number.");
+  const problem = passwordProblem(password);
+  if (problem) return bad(res, 400, problem);
+
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] recover-account refresh error:", e);
+    }
+  }
+
+  const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+  const user = queryOne<Record<string, any>>(
+    "SELECT id, phone, name, email FROM users WHERE email = ?",
+    [email]
+  );
+
+  if (!user) {
+    return bad(res, 400, "No account was found matching that email address.");
+  }
+
+  const userCleanPhone = (user.phone || "").replace(/\D/g, "").slice(-10);
+  if (cleanPhone.length < 10 || userCleanPhone !== cleanPhone) {
+    return bad(res, 400, "The phone number does not match our records for this email.");
+  }
+
+  execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", [
+    hashPassword(password),
+    nowIso(),
+    user.id,
+  ]);
+  execute("DELETE FROM sessions WHERE user_id = ?", [user.id]);
+
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] recover-account sync error:", e);
+    }
+  }
+
+  const session = createSession(user.id);
+  const fullUser = readSessionUser(user.id);
+
+  res.json({
+    ok: true,
+    message: "Password reset successfully! Signing you in…",
+    token: session.token,
+    user: fullUser ? publicUser(fullUser) : undefined,
+  });
 });
 
 /**

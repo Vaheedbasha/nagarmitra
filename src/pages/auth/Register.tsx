@@ -63,6 +63,7 @@ export default function Register() {
           name: form.name,
           emailSent: result?.emailSent,
           previewUrl: result?.previewUrl,
+          verifyToken: (result as any)?.verifyToken,
         },
       });
     } catch (caught) {

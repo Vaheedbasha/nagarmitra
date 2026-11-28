@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Mail, ArrowRight, RefreshCw, CheckCircle2, ShieldCheck, Sparkles, ExternalLink } from "lucide-react";
+import { Mail, ArrowRight, RefreshCw, CheckCircle2, ShieldCheck, Sparkles, ExternalLink, Loader2 } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import { api } from "@/lib/api";
 import { useAuth } from "@/store/AuthContext";
 import { useToast } from "@/store/ToastContext";
 
@@ -10,19 +11,21 @@ interface LocationState {
   name?: string;
   emailSent?: boolean;
   previewUrl?: string;
+  verifyToken?: string;
 }
 
 export default function CheckEmail() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, resendVerification, logout } = useAuth();
+  const { user, resendVerification, refreshUser, logout } = useAuth();
   const { toast } = useToast();
 
   const state = (location.state as LocationState) || {};
   const email = state.email || user?.email || "";
-  const previewUrl = state.previewUrl;
+  const previewUrl = state.previewUrl || (state.verifyToken ? `/verify-email?token=${encodeURIComponent(state.verifyToken)}` : undefined);
 
   const [resending, setResending] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [cooldown, setCooldown] = useState(0);
   const [localPreviewUrl, setLocalPreviewUrl] = useState<string | undefined>(previewUrl);
   const [resentSuccess, setResentSuccess] = useState(false);
@@ -34,6 +37,24 @@ export default function CheckEmail() {
     }, 1000);
     return () => clearInterval(timer);
   }, [cooldown]);
+
+  const handleInstantActivate = async () => {
+    setActivating(true);
+    try {
+      await api("/api/auth/verify-instant", { method: "POST" });
+      await refreshUser();
+      toast({
+        title: "Account Activated!",
+        description: "Your citizen email has been verified.",
+        variant: "success",
+      });
+      navigate("/", { replace: true });
+    } catch {
+      navigate("/", { replace: true });
+    } finally {
+      setActivating(false);
+    }
+  };
 
   const handleResend = async () => {
     if (cooldown > 0 || resending || !email) return;
@@ -108,29 +129,40 @@ export default function CheckEmail() {
             </p>
           </div>
 
-          {/* Fallback Preview Activation Box (Active in Preview or before Resend API key setup) */}
-          {localPreviewUrl && (
-            <div className="mt-6 rounded-xl border border-brand-200 bg-brand-50/70 p-4 text-left">
-              <div className="flex items-start gap-2.5">
-                <Sparkles size={16} className="mt-0.5 shrink-0 text-brand-600" />
-                <div className="flex-1">
-                  <h2 className="text-[12.5px] font-bold text-brand-900">
-                    Instant One-Click Activation
-                  </h2>
-                  <p className="mt-1 text-[11px] leading-relaxed text-brand-700">
-                    You can activate your account immediately by clicking the button below:
-                  </p>
-                  <a
-                    href={localPreviewUrl}
-                    className="mt-3 inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-[12px] font-bold text-white shadow-sm hover:bg-brand-700 transition"
+          {/* Instant Activation Action Box */}
+          <div className="mt-6 rounded-xl border border-brand-200 bg-brand-50/70 p-4 text-left">
+            <div className="flex items-start gap-2.5">
+              <Sparkles size={16} className="mt-0.5 shrink-0 text-brand-600" />
+              <div className="flex-1">
+                <h2 className="text-[12.5px] font-bold text-brand-900">
+                  Instant One-Click Activation
+                </h2>
+                <p className="mt-1 text-[11px] leading-relaxed text-brand-700">
+                  Activate your citizen profile immediately to start submitting reports:
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleInstantActivate}
+                    disabled={activating}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-[12px] font-bold text-white shadow-sm hover:bg-brand-700 active:scale-[0.99] transition disabled:opacity-60"
                   >
-                    <span>Activate Account Now</span>
-                    <ExternalLink size={13} />
-                  </a>
+                    {activating ? <Loader2 size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
+                    <span>Activate Account Instantly</span>
+                  </button>
+                  {localPreviewUrl && (
+                    <a
+                      href={localPreviewUrl}
+                      className="inline-flex items-center justify-center gap-1 rounded-lg border border-brand-300 bg-white px-3 py-2 text-[11.5px] font-semibold text-brand-700 hover:bg-brand-50 transition"
+                    >
+                      <span>Direct Verify Link</span>
+                      <ExternalLink size={12} />
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
-          )}
+          </div>
 
           {/* Verification steps */}
           <div className="mt-6 space-y-2.5 rounded-xl bg-slate-50 p-4 border border-slate-100 text-[12px] text-slate-600 text-left">
