@@ -1,4 +1,22 @@
+import nodemailer, { type Transporter } from "nodemailer";
 import { config } from "./config.js";
+
+let smtpTransporter: Transporter | null = null;
+
+function getSmtpTransporter(): Transporter | null {
+  if (!smtpTransporter && config.email.smtp.user && config.email.smtp.pass) {
+    smtpTransporter = nodemailer.createTransport({
+      host: config.email.smtp.host,
+      port: config.email.smtp.port,
+      secure: config.email.smtp.secure,
+      auth: {
+        user: config.email.smtp.user,
+        pass: config.email.smtp.pass,
+      },
+    });
+  }
+  return smtpTransporter;
+}
 
 interface VerificationEmailInput {
   name: string;
@@ -91,11 +109,36 @@ export async function sendVerificationEmail(input: VerificationEmailInput): Prom
 }> {
   const baseUrl = config.publicAppUrl.replace(/\/$/, "");
   const verificationLink = `${baseUrl}/verify-email?token=${encodeURIComponent(input.token)}`;
+  const html = buildVerificationHtml(input);
 
-  // If Resend API key is configured, send the real email via Resend API
+  // 1. Primary: Send via SMTP (Gmail SMTP sends to ANY email worldwide)
+  const transporter = getSmtpTransporter();
+  if (transporter) {
+    try {
+      const fromAddr = config.email.smtp.from || `NagarMitra <${config.email.smtp.user}>`;
+      const info = await transporter.sendMail({
+        from: fromAddr,
+        to: input.email,
+        subject: "Verify your NagarMitra citizen account",
+        html,
+      });
+      console.log(`[email] Verification email dispatched to ${input.email} via SMTP. ID:`, info.messageId);
+      return { sent: true, previewUrl: verificationLink };
+    } catch (smtpErr: any) {
+      console.warn("[email] SMTP dispatch error:", smtpErr);
+      if (!config.email.resendApiKey) {
+        return {
+          sent: false,
+          previewUrl: verificationLink,
+          error: smtpErr?.message || "SMTP delivery error",
+        };
+      }
+    }
+  }
+
+  // 2. Secondary: Fallback to Resend API if configured
   if (config.email.resendApiKey) {
     try {
-      const html = buildVerificationHtml(input);
       const res = await fetch("https://api.resend.com/emails", {
         method: "POST",
         headers: {

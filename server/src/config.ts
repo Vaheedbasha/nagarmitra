@@ -63,7 +63,15 @@ export const config = {
   },
   email: {
     resendApiKey: env.RESEND_API_KEY ?? "",
-    fromEmail: env.RESEND_FROM_EMAIL ?? "NagarMitra <onboarding@resend.dev>",
+    fromEmail: env.MAIL_FROM_ADDRESS ?? env.RESEND_FROM_EMAIL ?? "NagarMitra <vaheedbasha544@gmail.com>",
+    smtp: {
+      host: env.MAIL_HOST ?? env.SMTP_HOST ?? "smtp.gmail.com",
+      port: Number(env.MAIL_PORT ?? env.SMTP_PORT ?? 587),
+      secure: env.MAIL_PORT === "465" || env.MAIL_ENCRYPTION === "ssl",
+      user: env.MAIL_USERNAME ?? env.SMTP_USER ?? env.GMAIL_USER ?? "vaheedbasha544@gmail.com",
+      pass: env.MAIL_PASSWORD ?? env.SMTP_PASS ?? env.SMTP_PASSWORD ?? env.GMAIL_APP_PASSWORD ?? "ssay zkpi fkfm zjhx",
+      from: env.MAIL_FROM_ADDRESS ?? "NagarMitra <vaheedbasha544@gmail.com>",
+    },
   },
   publicAppUrl: env.PUBLIC_APP_URL ?? (isVercel ? "https://nagarmitra-sable.vercel.app" : "http://127.0.0.1:5173"),
 } as const;
