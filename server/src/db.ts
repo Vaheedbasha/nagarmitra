@@ -169,6 +169,9 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, crea
 
 -- Automatic migration to real Indian cities
 UPDATE complaints SET city = 'Hyderabad' WHERE city = 'Riverton' OR city IS NULL;
+UPDATE complaints SET description = REPLACE(description, 'Riverton', 'Hyderabad') WHERE description LIKE '%Riverton%';
+UPDATE complaints SET location = REPLACE(location, 'Riverton', 'Hyderabad') WHERE location LIKE '%Riverton%';
+UPDATE complaints SET title = REPLACE(title, 'Riverton', 'Hyderabad') WHERE title LIKE '%Riverton%';
 UPDATE users SET city = 'Hyderabad' WHERE city = 'Riverton' OR city IS NULL;
 UPDATE users SET organisation = 'Greater Hyderabad Municipal Corporation (GHMC)' WHERE organisation LIKE '%Riverton%';
 `);
