@@ -120,7 +120,7 @@ authRouter.post("/register", async (req, res) => {
     );
   }
 
-  let emailResult = { sent: false, previewUrl: "" };
+  let emailResult: { sent: boolean; previewUrl: string; error?: string } = { sent: false, previewUrl: "" };
   try {
     emailResult = await sendVerificationEmail({
       name,
@@ -498,7 +498,7 @@ authRouter.post("/resend-verification", optionalAuth, async (req, res) => {
     [sha256(verifyToken), user.id, user.email, expiresAt, at]
   );
 
-  let emailResult = { sent: false, previewUrl: "" };
+  let emailResult: { sent: boolean; previewUrl: string; error?: string } = { sent: false, previewUrl: "" };
   try {
     emailResult = await sendVerificationEmail({
       name: user.name,
