@@ -12,10 +12,16 @@ let pendingSync = false;
 let localSnapshotTimestamp: string | null = null;
 
 const DEFAULT_NEON_URL =
-  "postgresql://neondb_owner:npg_Uj1GNHu7wlTk@ep-young-mountain-bb37bsyo-pooler.c-15.us-east-1.aws.neon.tech/neondb?sslmode=require";
+  "postgresql://neondb_owner:npg_4rGcB0zmsOna@ep-young-mountain-bb37bsyo-pooler.c-15.us-east-1.aws.neon.tech/neondb?sslmode=require";
 
 function getPostgresUrl(): string | null {
-  const url = process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.POSTGRES_PRISMA_URL;
+  const url =
+    process.env.NAGARMITRA_POSTGRES_URL ||
+    process.env.NAGARMITRA_DATABASE_URL ||
+    process.env.NAGARMITRA_POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_PRISMA_URL;
   if (url && (url.startsWith("postgres://") || url.startsWith("postgresql://"))) {
     return url;
   }

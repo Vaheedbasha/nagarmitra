@@ -37,3 +37,6 @@ server/dist/
 
 # Runtime pid files
 *.pid
+
+.vercel
+.env*
