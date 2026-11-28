@@ -28,6 +28,13 @@ interface OfficialInput extends RegisterInput {
   organisation: string;
 }
 
+export interface RegisterResult {
+  token: string;
+  user: SessionUser;
+  emailSent?: boolean;
+  previewUrl?: string;
+}
+
 interface AuthContextValue {
   user: SessionUser | null;
   token: string | null;
@@ -35,7 +42,8 @@ interface AuthContextValue {
   isStaff: boolean;
   isAdmin: boolean;
   login: (identifier: string, password: string) => Promise<{ pendingApproval: boolean; user: SessionUser }>;
-  register: (input: RegisterInput) => Promise<void>;
+  register: (input: RegisterInput) => Promise<RegisterResult>;
+  resendVerification: (email?: string) => Promise<{ ok: boolean; emailSent?: boolean; previewUrl?: string; message?: string }>;
   registerOfficial: (input: OfficialInput) => Promise<{ status: string; message: string }>;
   logout: () => Promise<void>;
   updateProfile: (patch: Partial<Record<string, unknown>>) => Promise<void>;
@@ -127,8 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { pendingApproval: Boolean(data.pendingApproval), user: data.user };
   }, []);
 
-  const register = useCallback(async (input: RegisterInput) => {
-    const data = await api<{ token: string; user: SessionUser }>("/api/auth/register", {
+  const register = useCallback(async (input: RegisterInput): Promise<RegisterResult> => {
+    const data = await api<RegisterResult>("/api/auth/register", {
       method: "POST",
       body: input,
       anonymous: true,
@@ -136,6 +144,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(data.token);
     setTokenState(data.token);
     setUser(data.user);
+    return data;
+  }, [setUser]);
+
+  const resendVerification = useCallback(async (email?: string) => {
+    return api<{ ok: boolean; emailSent?: boolean; previewUrl?: string; message?: string }>(
+      "/api/auth/resend-verification",
+      {
+        method: "POST",
+        body: email ? { email } : {},
+      }
+    );
   }, []);
 
   const registerOfficial = useCallback(async (input: OfficialInput) => {
@@ -188,13 +207,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAdmin: user?.role === "admin",
       login,
       register,
+      resendVerification,
       registerOfficial,
       logout,
       updateProfile,
       changePassword,
       refreshUser,
     }),
-    [user, token, loading, login, register, registerOfficial, logout, updateProfile, changePassword, refreshUser]
+    [user, token, loading, login, register, resendVerification, registerOfficial, logout, updateProfile, changePassword, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

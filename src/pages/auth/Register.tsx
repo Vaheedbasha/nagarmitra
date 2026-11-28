@@ -46,7 +46,7 @@ export default function Register() {
     }
     setSubmitting(true);
     try {
-      await register({
+      const result = await register({
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -56,7 +56,15 @@ export default function Register() {
         language: form.language as Language,
       });
       setLanguage(form.language as Language);
-      navigate("/", { replace: true });
+      navigate("/check-email", {
+        replace: true,
+        state: {
+          email: form.email,
+          name: form.name,
+          emailSent: result?.emailSent,
+          previewUrl: result?.previewUrl,
+        },
+      });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Registration failed.");
     } finally {

@@ -23,6 +23,8 @@ import ReportHub from "@/pages/citizen/ReportHub";
 
 // Secondary & Admin Routes (code-split & lazy-loaded)
 const Register = lazy(() => import("@/pages/auth/Register"));
+const CheckEmail = lazy(() => import("@/pages/auth/CheckEmail"));
+const VerifyEmail = lazy(() => import("@/pages/auth/VerifyEmail"));
 const OfficialRegister = lazy(() => import("@/pages/auth/OfficialRegister"));
 const PendingApproval = lazy(() => import("@/pages/auth/PendingApproval"));
 const ForgotPassword = lazy(() => import("@/pages/auth/ForgotPassword"));
@@ -127,6 +129,8 @@ function AppRoutes() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/check-email" element={<CheckEmail />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/official-register" element={<OfficialRegister />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 

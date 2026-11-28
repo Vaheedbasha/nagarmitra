@@ -22,6 +22,7 @@ export interface SessionUser {
   area: string | null;
   language: string;
   notifyEmail: number;
+  emailVerified: boolean;
   trustScore: number;
   createdAt: string;
 }
@@ -88,6 +89,7 @@ export function userFromToken(token: string): SessionUser | null {
     area: row.area,
     language: row.language,
     notifyEmail: row.notify_email,
+    emailVerified: Boolean(row.email_verified),
     trustScore: row.trust_score,
     createdAt: row.created_at,
   };
@@ -204,6 +206,7 @@ export function publicUser(user: SessionUser) {
     area: user.area,
     language: user.language,
     notifyEmail: Boolean(user.notifyEmail),
+    emailVerified: Boolean(user.emailVerified),
     trustScore: user.trustScore,
     createdAt: user.createdAt,
   };

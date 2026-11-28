@@ -61,7 +61,12 @@ export const config = {
     maxImageBytes: Number(env.MAX_IMAGE_BYTES ?? 8 * 1024 * 1024),
     maxVideoBytes: Number(env.MAX_VIDEO_BYTES ?? 40 * 1024 * 1024),
   },
-  publicAppUrl: env.PUBLIC_APP_URL ?? "http://127.0.0.1:5173",
+  email: {
+    resendApiKey: env.RESEND_API_KEY ?? "",
+    fromEmail: env.RESEND_FROM_EMAIL ?? "NagarMitra <onboarding@resend.dev>",
+  },
+  publicAppUrl: env.PUBLIC_APP_URL ?? (isVercel ? "https://nagarmitra-sable.vercel.app" : "http://127.0.0.1:5173"),
 } as const;
 
 export const isAiConfigured = () => Boolean(config.ai.apiKey && config.ai.model);
+export const isEmailConfigured = () => Boolean(config.email.resendApiKey);

@@ -14,6 +14,7 @@ import { config } from "../config.js";
 import { execute, nowIso, queryOne, uid } from "../db.js";
 import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "../cloud-storage.js";
 import { notifyStaff, notifyUser } from "../notifications.js";
+import { sendVerificationEmail } from "../email.js";
 import {
   bad,
   isEmail,
@@ -46,6 +47,7 @@ function readSessionUser(id: string): SessionUser {
     area: row.area,
     language: row.language,
     notifyEmail: row.notify_email,
+    emailVerified: Boolean(row.email_verified),
     trustScore: row.trust_score,
     createdAt: row.created_at,
   };
@@ -74,10 +76,30 @@ authRouter.post("/register", async (req, res) => {
   const id = uid();
   const at = nowIso();
   execute(
-    `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (id, name, email, phone, password_hash, role, city, area, language, email_verified, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, 'citizen', ?, ?, ?, 0, ?, ?)`,
     [id, name, email, phone, hashPassword(password), city, area, language, at, at]
   );
+
+  const verifyToken = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 24 * 3600_000).toISOString();
+  execute(
+    `INSERT INTO email_verifications (token_hash, user_id, email, expires_at, used, created_at)
+     VALUES (?, ?, ?, ?, 0, ?)`,
+    [sha256(verifyToken), id, email, expiresAt, at]
+  );
+
+  let emailResult = { sent: false, previewUrl: "" };
+  try {
+    emailResult = await sendVerificationEmail({
+      name,
+      email,
+      token: verifyToken,
+      city,
+    });
+  } catch (emailErr) {
+    console.warn("[auth] Failed to dispatch verification email:", emailErr);
+  }
 
   const session = createSession(id);
   if (isCloudConfigured()) {
@@ -87,7 +109,13 @@ authRouter.post("/register", async (req, res) => {
       console.warn("[auth] register sync error:", e);
     }
   }
-  res.status(201).json({ token: session.token, expiresAt: session.expiresAt, user: publicUser(readSessionUser(id)) });
+  res.status(201).json({
+    token: session.token,
+    expiresAt: session.expiresAt,
+    user: publicUser(readSessionUser(id)),
+    emailSent: emailResult.sent,
+    previewUrl: emailResult.previewUrl,
+  });
 });
 
 /** Officials request access; they do not receive staff permissions until approved. */
@@ -342,4 +370,126 @@ authRouter.post("/reset-password", async (req, res) => {
 
 authRouter.get("/official-status", requireAuth, (req, res) => {
   res.json({ role: req.user!.role, officialStatus: req.user!.officialStatus });
+});
+
+authRouter.get("/verify-email", async (req, res) => {
+  const token = text(req.query?.token as string, 200);
+  if (!token) return bad(res, 400, "Verification token is required.");
+  const tokenHash = sha256(token);
+
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] verify-email refresh error:", e);
+    }
+  }
+
+  const record = queryOne<{ user_id: string; email: string; expires_at: string; used: number }>(
+    "SELECT user_id, email, expires_at, used FROM email_verifications WHERE token_hash = ?",
+    [tokenHash]
+  );
+
+  if (!record) {
+    return bad(res, 400, "This verification link is invalid or has already been replaced.");
+  }
+
+  if (record.used) {
+    const user = readSessionUser(record.user_id);
+    const session = createSession(record.user_id);
+    return res.json({
+      ok: true,
+      alreadyVerified: true,
+      message: "Your email has already been verified.",
+      token: session.token,
+      user: user ? publicUser(user) : undefined,
+    });
+  }
+
+  if (new Date(record.expires_at).getTime() < Date.now()) {
+    return bad(res, 400, "This verification link has expired. Please request a new verification email.");
+  }
+
+  execute("UPDATE email_verifications SET used = 1 WHERE token_hash = ?", [tokenHash]);
+  execute("UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?", [nowIso(), record.user_id]);
+
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] verify-email sync error:", e);
+    }
+  }
+
+  const user = readSessionUser(record.user_id);
+  const session = createSession(record.user_id);
+  res.json({
+    ok: true,
+    message: "Email verified successfully! Your account is now fully active.",
+    token: session.token,
+    user: publicUser(user),
+  });
+});
+
+authRouter.post("/resend-verification", optionalAuth, async (req, res) => {
+  const emailInput = req.body?.email ? text(req.body.email, 160).toLowerCase() : undefined;
+  const targetEmail = req.user?.email || emailInput;
+
+  if (!targetEmail || !isEmail(targetEmail)) {
+    return bad(res, 400, "Please provide a valid email address.");
+  }
+
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] resend refresh error:", e);
+    }
+  }
+
+  const user = queryOne<Record<string, any>>("SELECT * FROM users WHERE email = ?", [targetEmail]);
+  if (!user) {
+    return res.json({ ok: true, message: "If that account exists, a new verification link was sent." });
+  }
+
+  if (user.email_verified) {
+    return res.json({ ok: true, alreadyVerified: true, message: "This email address is already verified." });
+  }
+
+  const verifyToken = randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + 24 * 3600_000).toISOString();
+  const at = nowIso();
+
+  execute(
+    `INSERT INTO email_verifications (token_hash, user_id, email, expires_at, used, created_at)
+     VALUES (?, ?, ?, ?, 0, ?)`,
+    [sha256(verifyToken), user.id, user.email, expiresAt, at]
+  );
+
+  let emailResult = { sent: false, previewUrl: "" };
+  try {
+    emailResult = await sendVerificationEmail({
+      name: user.name,
+      email: user.email,
+      token: verifyToken,
+      city: user.city || undefined,
+    });
+  } catch (err) {
+    console.warn("[auth] resend email dispatch error:", err);
+  }
+
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] resend sync error:", e);
+    }
+  }
+
+  res.json({
+    ok: true,
+    emailSent: emailResult.sent,
+    previewUrl: emailResult.previewUrl,
+    message: "A new verification link has been dispatched to your email.",
+  });
 });

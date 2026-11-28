@@ -150,6 +150,7 @@ export interface SessionUser {
   area: string | null;
   language: "en" | "hi" | "te";
   notifyEmail: boolean;
+  emailVerified?: boolean;
   trustScore: number;
   createdAt: string;
 }

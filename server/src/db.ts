@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS users (
   area TEXT,
   language TEXT NOT NULL DEFAULT 'en',
   notify_email INTEGER NOT NULL DEFAULT 1,
+  email_verified INTEGER NOT NULL DEFAULT 0,
   trust_score INTEGER NOT NULL DEFAULT 70,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL
@@ -46,6 +47,15 @@ CREATE TABLE IF NOT EXISTS password_resets (
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expires_at TEXT NOT NULL,
   used INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS email_verifications (
+  token_hash TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  expires_at TEXT NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS complaints (
@@ -174,7 +184,12 @@ UPDATE complaints SET location = REPLACE(location, 'Riverton', 'Hyderabad') WHER
 UPDATE complaints SET title = REPLACE(title, 'Riverton', 'Hyderabad') WHERE title LIKE '%Riverton%';
 UPDATE users SET city = 'Hyderabad' WHERE city = 'Riverton' OR city IS NULL;
 UPDATE users SET organisation = 'Greater Hyderabad Municipal Corporation (GHMC)' WHERE organisation LIKE '%Riverton%';
+UPDATE users SET email_verified = 1 WHERE role = 'admin' OR email = 'ananya@nagarmitra.local';
 `);
+
+  try {
+    database.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0;");
+  } catch {}
 }
 
 export function getDb(): DatabaseSync {
