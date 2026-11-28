@@ -123,6 +123,7 @@ export default function ChatReport() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const recordTimerRef = useRef<any>(null);
+  const isCancelledRef = useRef(false);
 
   // Hidden File Inputs
   const liveCameraInputRef = useRef<HTMLInputElement>(null);
@@ -304,21 +305,25 @@ export default function ChatReport() {
     }
 
     try {
+      isCancelledRef.current = false;
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       audioChunksRef.current = [];
       const recorder = new MediaRecorder(stream);
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+        if (event.data.size > 0 && !isCancelledRef.current) {
           audioChunksRef.current.push(event.data);
         }
       };
 
       recorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
-        // Stop all audio tracks
         stream.getTracks().forEach((track) => track.stop());
+        if (isCancelledRef.current) {
+          audioChunksRef.current = [];
+          return;
+        }
         if (audioChunksRef.current.length > 0) {
+          const audioBlob = new Blob(audioChunksRef.current, { type: "audio/webm" });
           void handleMediaUpload(audioBlob, "audio");
         }
       };
@@ -351,6 +356,7 @@ export default function ChatReport() {
   };
 
   const cancelVoiceRecording = () => {
+    isCancelledRef.current = true;
     if (recordTimerRef.current) clearInterval(recordTimerRef.current);
     audioChunksRef.current = [];
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
