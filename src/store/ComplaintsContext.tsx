@@ -111,12 +111,24 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
   const [selectedCity, setSelectedCityState] = useState<string>(
     () => window.localStorage.getItem(CITY_KEY) ?? "Hyderabad"
   );
-  const [language, setLanguageState] = useState<Language>(
-    () => ((user?.language as Language) ?? (window.localStorage.getItem(LANGUAGE_KEY) as Language) ?? "en")
-  );
+  const [language, setLanguageState] = useState<Language>(() => {
+    try {
+      const stored = window.localStorage.getItem(LANGUAGE_KEY);
+      if (stored === "hi") return "hi";
+      if (stored === "te") {
+        window.localStorage.setItem(LANGUAGE_KEY, "en");
+        return "en";
+      }
+    } catch {
+      /* ignore */
+    }
+    return "en";
+  });
 
   useEffect(() => {
-    if (user?.language) setLanguageState(user.language);
+    if (user?.language && user.language !== "te") {
+      setLanguageState(user.language);
+    }
   }, [user?.language]);
 
   useEffect(() => {

@@ -206,6 +206,10 @@ UPDATE users SET organisation = 'Greater Hyderabad Municipal Corporation (GHMC)'
   try {
     database.exec("UPDATE users SET email_verified = 1 WHERE role = 'admin' OR email = 'ananya@nagarmitra.local';");
   } catch {}
+
+  try {
+    database.exec("UPDATE users SET language = 'en' WHERE language = 'te';");
+  } catch {}
 }
 
 export function getDb(): DatabaseSync {

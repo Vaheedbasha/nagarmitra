@@ -21,7 +21,7 @@ export default function Register() {
     area: "",
     password: "",
     confirm: "",
-    language,
+    language: "en",
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
