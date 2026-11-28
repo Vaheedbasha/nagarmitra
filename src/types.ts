@@ -56,7 +56,7 @@ export interface Comment {
 
 export interface MediaRef {
   id: string;
-  kind: "photo" | "video";
+  kind: "photo" | "video" | "audio";
   url: string;
 }
 

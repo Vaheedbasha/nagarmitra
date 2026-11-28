@@ -83,7 +83,7 @@ export default function AdminComplaints() {
       "Date Submitted",
       "Last Updated",
       "Citizen Confirmations",
-      "AI Summary",
+      "Executive Summary",
       "Reporter Privacy Status",
     ];
 

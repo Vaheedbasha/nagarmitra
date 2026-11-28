@@ -400,7 +400,9 @@ complaintRouter.post("/:id/comments", requireAuth, async (req, res) => {
 /** Standalone upload; media is linked to a complaint at submission time. */
 complaintRouter.post("/media", requireAuth, upload.single("file"), async (req, res) => {
   if (!req.file) return bad(res, 400, "No file received.");
-  const kind = req.file.mimetype.startsWith("video/") ? "video" : "photo";
+  const isAudio = req.file.mimetype.startsWith("audio/");
+  const isVideo = req.file.mimetype.startsWith("video/");
+  const kind = isVideo ? "video" : (isAudio ? "audio" : "photo");
   const limit = kind === "photo" ? config.media.maxImageBytes : config.media.maxVideoBytes;
   if (req.file.size > limit) {
     return bad(res, 413, `File is too large. Maximum ${Math.round(limit / 1024 / 1024)} MB.`);
@@ -439,7 +441,9 @@ complaintRouter.post("/:id/media", requireAuth, upload.single("file"), async (re
   if (row.reporter_id !== req.user!.id && req.user!.role !== "admin")
     return bad(res, 403, "Not allowed");
   if (!req.file) return bad(res, 400, "No file received");
-  const kind = req.file.mimetype.startsWith("video/") ? "video" : "photo";
+  const isAudio = req.file.mimetype.startsWith("audio/");
+  const isVideo = req.file.mimetype.startsWith("video/");
+  const kind = isVideo ? "video" : (isAudio ? "audio" : "photo");
   const id = uid();
   execute(
     `INSERT INTO media (id, complaint_id, kind, filename, mime, size, original_name, uploaded_by, created_at)

@@ -234,7 +234,7 @@ export default function ReportHub() {
 
       setPhotoModalOpen(false);
       setPhotoData(null);
-      navigate(`/complaint/${created.id}`);
+      navigate(`/reports/${created.id}`);
     } catch (error: any) {
       toast({
         title: "Submission failed",

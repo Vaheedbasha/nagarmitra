@@ -135,6 +135,7 @@ function AppRoutes() {
             <Route path="/" element={<Home />} />
             <Route path="/explore" element={<Explore />} />
             <Route path="/reports/:id" element={<ComplaintDetail />} />
+            <Route path="/complaint/:id" element={<ComplaintDetail />} />
 
             {/* Authenticated Citizen Actions */}
             <Route element={<RequireAuth />}>

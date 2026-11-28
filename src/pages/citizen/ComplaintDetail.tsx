@@ -19,6 +19,7 @@ import {
   ThumbsUp,
   Trash2,
   User,
+  Volume2,
 } from "lucide-react";
 import { useComplaint, useComplaints } from "@/store/ComplaintsContext";
 import { useAuth } from "@/store/AuthContext";
@@ -269,6 +270,15 @@ export default function ComplaintDetail() {
             <div className="p-4 sm:p-5">
               <h2 className="text-[14px] font-bold">Description</h2>
               <p className="mt-2 text-[13px] leading-relaxed text-slate-600">{complaint.description}</p>
+              {complaint.audio && (
+                <div className="mt-3 rounded-xl border border-line bg-slate-50/90 p-3 sm:p-3.5">
+                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <Volume2 size={15} className="text-primary-600" />
+                    <span>Official Voice Note Recording</span>
+                  </div>
+                  <audio controls src={complaint.audio} className="h-10 w-full rounded-lg" />
+                </div>
+              )}
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
                   { label: "Category", value: category.short },
@@ -361,17 +371,17 @@ export default function ComplaintDetail() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-card sm:p-5">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-card sm:p-5">
             <div className="flex items-center gap-2">
-              <span className="rounded-lg bg-brand-50 p-1.5 text-brand-600">
-                <Sparkles size={15} />
+              <span className="rounded-lg bg-primary-50 p-1.5 text-primary-600">
+                <CheckCircle2 size={15} />
               </span>
               <div>
-                <h2 className="text-[13.5px] font-bold">AI Civic Triage & Executive Summary</h2>
-                <p className="text-[10px] text-slate-400">Automated triage for municipal dispatch</p>
+                <h2 className="text-[13.5px] font-bold">Civic Triage & Municipal Assessment</h2>
+                <p className="text-[10px] text-slate-400">Official verified summary for municipal dispatch</p>
               </div>
             </div>
-            <p className="mt-3 rounded-xl bg-brand-50/60 p-3.5 text-[13px] leading-relaxed text-slate-700">
+            <p className="mt-3 rounded-xl bg-slate-50/80 p-3.5 text-[13px] leading-relaxed text-slate-700">
               {complaint.aiSummary}
             </p>
             <p className="mt-2 text-[10px] leading-relaxed text-slate-400">

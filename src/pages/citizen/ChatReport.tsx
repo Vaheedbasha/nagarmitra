@@ -707,7 +707,7 @@ export default function ChatReport() {
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 className="text-lg font-bold sm:text-xl">AI & Civic Assistant</h1>
+            <h1 className="text-lg font-bold sm:text-xl">Civic Chat Assistant</h1>
             <p className="text-[11px] text-slate-400">
               Instant complaint reporting in {selectedCity} · Educated & uneducated citizen friendly
             </p>

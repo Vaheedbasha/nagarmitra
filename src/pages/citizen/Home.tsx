@@ -89,7 +89,7 @@ export default function Home() {
                 <ShieldCheck size={13} /> {resolved} issues resolved nearby
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <Sparkles size={13} /> AI-assisted triage
+                <CheckCircle2 size={13} /> Automated ward triage
               </span>
             </div>
           </div>

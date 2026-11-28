@@ -97,6 +97,7 @@ export function serializeComplaint(row: ComplaintRow, viewerId?: string) {
   );
   const photoMedia = media.find((item) => item.kind === "photo");
   const videoMedia = media.find((item) => item.kind === "video");
+  const audioMedia = media.find((item) => item.kind === "audio" || item.mime?.startsWith("audio/"));
 
   return {
     id: row.id,
@@ -117,6 +118,7 @@ export function serializeComplaint(row: ComplaintRow, viewerId?: string) {
     updated: row.updated_at.slice(0, 10),
     photo: row.photo ?? (photoMedia ? `/api/media/${photoMedia.id}` : undefined),
     video: row.video ?? (videoMedia ? `/api/media/${videoMedia.id}` : undefined),
+    audio: audioMedia ? `/api/media/${audioMedia.id}` : undefined,
     media: media.map((item) => ({ id: item.id, kind: item.kind, url: `/api/media/${item.id}` })),
     lat: row.lat,
     lng: row.lng,

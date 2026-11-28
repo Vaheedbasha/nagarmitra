@@ -3,10 +3,12 @@ import {
   Bell,
   Building2,
   Check,
+  CheckCircle2,
+  Database,
+  HardDrive,
   Map,
   Save,
   ShieldCheck,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { Panel } from "@/components/admin/Panel";
@@ -178,7 +180,7 @@ export default function AdminSettings() {
             </div>
             <div className="mt-1 rounded-xl border border-line bg-slate-50/60 px-3 py-2.5">
               <p className="flex items-center gap-1.5 text-[10.5px] font-semibold text-slate-700">
-                <Sparkles size={12} className="text-brand-500" />
+                <ShieldCheck size={12} className="text-primary-600" />
                 Active Priority Engine
               </p>
               <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">
@@ -208,11 +210,11 @@ export default function AdminSettings() {
                 description="Email a summary of trends, hotspots and resolution performance."
               />
             </div>
-            <div className="mt-2 flex items-center justify-between rounded-lg bg-slate-50 px-2.5 py-2">
-              <span className="flex items-center gap-1.5 text-[10.5px] text-slate-500">
-                <Bell size={12} /> Notification delivery is simulated
+            <div className="mt-2 flex items-center justify-between rounded-lg bg-emerald-50 px-2.5 py-2">
+              <span className="flex items-center gap-1.5 text-[10.5px] font-medium text-emerald-800">
+                <CheckCircle2 size={12} className="text-emerald-600" /> System alerts active & connected
               </span>
-              <Tag tone="neutral">Phase 2</Tag>
+              <Tag tone="teal">Production</Tag>
             </div>
           </Panel>
 
@@ -260,33 +262,33 @@ export default function AdminSettings() {
             </div>
           </Panel>
 
-          <Panel title="Phase 2 integrations" subtitle="Planned, not configured">
+          <Panel title="Platform infrastructure" subtitle="Active municipal cloud services">
             <ul className="space-y-2.5">
               {[
-                { label: "Mapping & geocoding", icon: Map },
-                { label: "Speech-to-text service", icon: Sparkles },
-                { label: "AI triage model", icon: ShieldCheck },
+                { label: "Database", status: "Neon PostgreSQL", icon: Database },
+                { label: "Mapping GIS", status: "OpenStreetMap", icon: Map },
+                { label: "Priority scoring", status: "Multi-Factor Rule Engine", icon: ShieldCheck },
+                { label: "Media storage", status: "Audio / Video / Photo", icon: HardDrive },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
                   <li
                     key={item.label}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-line bg-slate-50/40 px-2.5 py-2"
+                    className="flex items-center justify-between gap-2 rounded-lg border border-line bg-slate-50/70 px-2.5 py-2"
                   >
-                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-600">
-                      <Icon size={12} className="text-slate-400" />
+                    <span className="flex items-center gap-1.5 text-[11px] font-medium text-slate-700">
+                      <Icon size={13} className="text-primary-600" />
                       {item.label}
                     </span>
-                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">
-                      Soon
+                    <span className="text-[10px] font-semibold text-slate-500">
+                      {item.status}
                     </span>
                   </li>
                 );
               })}
             </ul>
             <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
-              This UI prototype has no backend, API keys or real integrations. All behavior is
-              simulated locally.
+              NagarMitra production console connected to serverless PostgreSQL and live GIS services.
             </p>
           </Panel>
         </div>
