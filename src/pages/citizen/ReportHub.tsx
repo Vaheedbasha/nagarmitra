@@ -9,9 +9,7 @@ import {
   ArrowRight,
   ShieldCheck,
   Zap,
-  Sparkles,
   Loader2,
-  CheckCircle2,
 } from "lucide-react";
 import { useComplaints } from "@/store/ComplaintsContext";
 import { useToast } from "@/store/ToastContext";
@@ -20,9 +18,100 @@ import { compressImage } from "@/lib/imageCompression";
 import { uploadMedia } from "@/lib/api";
 import { getCurrentPosition, reverseGeocode, getCityCoordinates } from "@/lib/location";
 
+const HUB_TRANSLATIONS = {
+  en: {
+    title: "Report an Issue",
+    subtitle: "Select your preferred reporting method. All options include automatic geotagging.",
+    cityLabel: "City",
+    change: "Change",
+    photoTitle: "One-Click Live Photo",
+    photoBadge: "Fastest (10 sec)",
+    photoDesc: "Snap photo evidence on-site. Your camera captures the issue and automatically tags live GPS coordinates.",
+    photoBtn: "Snap & Submit",
+    liveGps: "Live GPS",
+    chatTitle: "Chat Assistant",
+    chatBadge: "Conversational",
+    chatDesc: "Chat naturally with our civic assistant. Describe what you see in Hindi, Telugu, or English, attach media, and review before filing.",
+    chatBtn: "Start Chat Report",
+    chatMeta: "Multi-lingual",
+    voiceTitle: "Voice Note Report",
+    voiceBadge: "No Typing",
+    voiceDesc: "Record a quick 30-second voice note. Real-time speech recognition transcribes your words into an official complaint.",
+    voiceBtn: "Record Voice",
+    voiceMeta: "Audio Speech",
+    formTitle: "Detailed Form",
+    formBadge: "Standard Form",
+    formDesc: "Step-by-step form to manually select category, ward, address landmark, and attach multiple supporting files.",
+    formBtn: "Open Form",
+    formMeta: "Document Upload",
+    privacyTitle: "Citizen Privacy & Verification Guarantee",
+    privacyDesc: "Every submission is forwarded to the designated ward officer. Your name, email, and mobile number remain strictly confidential.",
+    activatingCamera: "Activating Camera…",
+  },
+  hi: {
+    title: "समस्या दर्ज करें",
+    subtitle: "अपनी पसंदीदा रिपोर्टिंग विधि चुनें। सभी विकल्पों में लाइव जीपीएस लोकेशन शामिल है।",
+    cityLabel: "शहर",
+    change: "बदलें",
+    photoTitle: "एक-क्लिक लाइव फोटो",
+    photoBadge: "सबसे तेज़ (10 सेकंड)",
+    photoDesc: "समस्या का सीधा फोटो खींचें। कैमरा अपने आप आपकी सटीक जीपीएस लोकेशन जोड़ देगा।",
+    photoBtn: "फोटो खींचें और भेजें",
+    liveGps: "लाइव जीपीएस",
+    chatTitle: "चैट सहायक",
+    chatBadge: "बातचीत द्वारा",
+    chatDesc: "हमारे नागरिक सहायक से अपनी भाषा में बात करें। विवरण लिखें, मीडिया संलग्न करें और पुष्टि करके भेजें।",
+    chatBtn: "चैट शुरू करें",
+    chatMeta: "बहुभाषी",
+    voiceTitle: "आवाज़ रिकॉर्ड करें",
+    voiceBadge: "बिना लिखे",
+    voiceDesc: "30 सेकंड का वॉयस नोट रिकॉर्ड करें। आपकी आवाज़ सुनकर तुरंत शिकायत तैयार हो जाएगी।",
+    voiceBtn: "आवाज़ रिकॉर्ड करें",
+    voiceMeta: "ऑडियो आवाज़",
+    formTitle: "विस्तृत फॉर्म",
+    formBadge: "मानक फॉर्म",
+    formDesc: "श्रेणी, वार्ड, पता व लैंडमार्क चुनकर कई दस्तावेज़ व फोटो अपलोड करने के लिए मानक फॉर्म।",
+    formBtn: "फॉर्म खोलें",
+    formMeta: "दस्तावेज़ अपलोड",
+    privacyTitle: "नागरिक गोपनीयता व सत्यापन गारंटी",
+    privacyDesc: "हर शिकायत संबंधित वार्ड अधिकारी को भेजी जाती है। आपका नाम, ईमेल और मोबाइल नंबर पूरी तरह सुरक्षित रहेगा।",
+    activatingCamera: "कैमरा शुरू हो रहा है…",
+  },
+  te: {
+    title: "సమస్యను నివేదించండి",
+    subtitle: "మీకు అనుకూలమైన నివేదన విధానాన్ని ఎంచుకోండి. అన్నింటిలో ఆటోమేటిక్ జీపీఎస్ ఉంటుంది.",
+    cityLabel: "నగరం",
+    change: "మార్చండి",
+    photoTitle: "ఒకే-క్లిక్ లైవ్ ఫోటో",
+    photoBadge: "అత్యంత వేగవంతమైనది (10 సెక)",
+    photoDesc: "సమస్య వద్ద లైవ్ ఫోటో తీయండి. కెమెరా స్వయంచాలకంగా మీ ఖచ్చితమైన జీపీఎస్ స్థానాన్ని రికార్డు చేస్తుంది.",
+    photoBtn: "ఫోటో తీసి పంపండి",
+    liveGps: "లైవ్ జీపీఎస్",
+    chatTitle: "చాట్ అసిస్టెంట్",
+    chatBadge: "సంభాషణ ద్వారా",
+    chatDesc: "మీ భాషలో సహాయకుడితో మాట్లాడండి. సమస్యను వివరించండి, ఫోటోలు జతచేయండి మరియు సమీక్షించండి.",
+    chatBtn: "చాట్ ప్రారంభించండి",
+    chatMeta: "బహుభాషా",
+    voiceTitle: "వాయిస్ నోట్ రిపోర్ట్",
+    voiceBadge: "టైప్ చేయనవసరం లేదు",
+    voiceDesc: "30 సెకన్ల వాయిస్ రికార్డ్ చేయండి. మీ మాటలను గుర్తించి వెంటనే ఫిర్యాదును సిద్ధం చేస్తుంది.",
+    voiceBtn: "వాయిస్ రికార్డ్ చేయండి",
+    voiceMeta: "ఆడియో మాటలు",
+    formTitle: "వివరమైన ఫారం",
+    formBadge: "ప్రామాణిక ఫారం",
+    formDesc: "వర్గం, వార్డు, ల్యాండ్‌మార్క్ ఎంచుకుని ఫైళ్లను అప్‌లోడ్ చేయడానికి స్టెప్ బై స్టెప్ ఫారం.",
+    formBtn: "ఫారం తెరవండి",
+    formMeta: "ఫైళ్ల అప్‌లోడ్",
+    privacyTitle: "పౌర గోప్యత & ధృవీకరణ హామీ",
+    privacyDesc: "ప్రతి ఫిర్యాదు సంబంధిత వార్డు అధికారికి వెళ్తుంది. మీ పేరు, ఇమెయిల్, మొబైల్ నంబర్ పూర్తిగా సురక్షితంగా ఉంటాయి.",
+    activatingCamera: "కెమెరా ఆన్ అవుతోంది…",
+  },
+};
+
 export default function ReportHub() {
   const navigate = useNavigate();
   const { selectedCity, language } = useComplaints();
+  const t = HUB_TRANSLATIONS[language] || HUB_TRANSLATIONS.en;
   const { toast } = useToast();
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
   const [capturingPhoto, setCapturingPhoto] = useState(false);
@@ -120,11 +209,11 @@ export default function ReportHub() {
               <Zap size={16} />
             </span>
             <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">
-              Report an Issue
+              {t.title}
             </h1>
           </div>
           <p className="mt-1 text-xs text-slate-500">
-            Select your preferred reporting method. All options include automatic geotagging.
+            {t.subtitle}
           </p>
         </div>
 
@@ -133,8 +222,8 @@ export default function ReportHub() {
           className="inline-flex items-center gap-1.5 self-start rounded-xl border border-line bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition hover:border-brand-300 hover:text-brand-600 sm:self-auto"
         >
           <MapPin size={13} className="text-brand-600" />
-          <span>City: {selectedCity}</span>
-          <span className="text-[10px] text-slate-400">Change</span>
+          <span>{t.cityLabel}: {selectedCity}</span>
+          <span className="text-[10px] text-slate-400">{t.change}</span>
         </button>
       </div>
 
@@ -151,16 +240,16 @@ export default function ReportHub() {
                 <Camera size={24} />
               </span>
               <span className="rounded-full bg-emerald-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-emerald-800">
-                Fastest (10 sec)
+                {t.photoBadge}
               </span>
             </div>
 
             <div>
               <h2 className="text-base font-extrabold text-slate-900 group-hover:text-emerald-700">
-                One-Click Live Photo
+                {t.photoTitle}
               </h2>
               <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                Snap photo evidence on-site. Your camera captures the issue and automatically tags live GPS coordinates.
+                {t.photoDesc}
               </p>
             </div>
           </div>
@@ -170,16 +259,16 @@ export default function ReportHub() {
               {capturingPhoto ? (
                 <>
                   <Loader2 size={13} className="animate-spin" />
-                  <span>Activating Camera…</span>
+                  <span>{t.activatingCamera}</span>
                 </>
               ) : (
                 <>
-                  <span>Snap & Submit</span>
+                  <span>{t.photoBtn}</span>
                   <ArrowRight size={13} className="transition group-hover:translate-x-1" />
                 </>
               )}
             </span>
-            <span className="text-[10.5px] text-slate-400">Live GPS</span>
+            <span className="text-[10.5px] text-slate-400">{t.liveGps}</span>
           </div>
         </div>
 
@@ -194,26 +283,26 @@ export default function ReportHub() {
                 <MessageSquare size={24} />
               </span>
               <span className="rounded-full bg-brand-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-brand-800">
-                Conversational
+                {t.chatBadge}
               </span>
             </div>
 
             <div>
               <h2 className="text-base font-extrabold text-slate-900 group-hover:text-brand-700">
-                Chat Assistant
+                {t.chatTitle}
               </h2>
               <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                Chat naturally with our civic assistant. Describe what you see in Hindi, Telugu, or English, attach media, and review before filing.
+                {t.chatDesc}
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
             <span className="text-[11px] font-bold text-brand-700 flex items-center gap-1">
-              <span>Start Chat Report</span>
+              <span>{t.chatBtn}</span>
               <ArrowRight size={13} className="transition group-hover:translate-x-1" />
             </span>
-            <span className="text-[10.5px] text-slate-400">Multi-lingual</span>
+            <span className="text-[10.5px] text-slate-400">{t.chatMeta}</span>
           </div>
         </Link>
 
@@ -228,26 +317,26 @@ export default function ReportHub() {
                 <Mic size={24} />
               </span>
               <span className="rounded-full bg-rose-100/70 px-2.5 py-0.5 text-[10.5px] font-bold text-rose-800">
-                No Typing
+                {t.voiceBadge}
               </span>
             </div>
 
             <div>
               <h2 className="text-base font-extrabold text-slate-900 group-hover:text-rose-700">
-                Voice Note Report
+                {t.voiceTitle}
               </h2>
               <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                Record a quick 30-second voice note. Real-time speech recognition transcribes your words into an official complaint.
+                {t.voiceDesc}
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
             <span className="text-[11px] font-bold text-rose-700 flex items-center gap-1">
-              <span>Record Voice</span>
+              <span>{t.voiceBtn}</span>
               <ArrowRight size={13} className="transition group-hover:translate-x-1" />
             </span>
-            <span className="text-[10.5px] text-slate-400">Audio Speech</span>
+            <span className="text-[10.5px] text-slate-400">{t.voiceMeta}</span>
           </div>
         </Link>
 
@@ -262,26 +351,26 @@ export default function ReportHub() {
                 <FileText size={24} />
               </span>
               <span className="rounded-full bg-slate-200/70 px-2.5 py-0.5 text-[10.5px] font-bold text-slate-700">
-                Standard Form
+                {t.formBadge}
               </span>
             </div>
 
             <div>
               <h2 className="text-base font-extrabold text-slate-900 group-hover:text-slate-800">
-                Detailed Form
+                {t.formTitle}
               </h2>
               <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
-                Step-by-step form to manually select category, ward, address landmark, and attach multiple supporting files.
+                {t.formDesc}
               </p>
             </div>
           </div>
 
           <div className="mt-5 flex items-center justify-between pt-3 border-t border-line/60">
             <span className="text-[11px] font-bold text-slate-700 flex items-center gap-1">
-              <span>Open Form</span>
+              <span>{t.formBtn}</span>
               <ArrowRight size={13} className="transition group-hover:translate-x-1" />
             </span>
-            <span className="text-[10.5px] text-slate-400">Document Upload</span>
+            <span className="text-[10.5px] text-slate-400">{t.formMeta}</span>
           </div>
         </Link>
       </div>
@@ -290,9 +379,9 @@ export default function ReportHub() {
       <div className="flex items-start gap-3 rounded-2xl border border-line bg-white p-4 text-xs text-slate-600">
         <ShieldCheck size={18} className="text-brand-600 shrink-0 mt-0.5" />
         <div className="space-y-0.5">
-          <p className="font-semibold text-slate-800">Citizen Privacy & Verification Guarantee</p>
+          <p className="font-semibold text-slate-800">{t.privacyTitle}</p>
           <p className="text-[11px] leading-relaxed text-slate-500">
-            Every submission is forwarded to the designated ward officer. Your name, email, and mobile number remain strictly confidential.
+            {t.privacyDesc}
           </p>
         </div>
       </div>
