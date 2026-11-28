@@ -77,4 +77,5 @@ export const config = {
 } as const;
 
 export const isAiConfigured = () => Boolean(config.ai.apiKey && config.ai.model);
-export const isEmailConfigured = () => Boolean(config.email.resendApiKey);
+export const isEmailConfigured = () =>
+  Boolean(config.email.resendApiKey || (config.email.smtp.user && config.email.smtp.pass));

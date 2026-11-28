@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Check,
@@ -39,6 +39,17 @@ export default function Profile() {
   const [city, setCity] = useState(user?.city || selectedCity || "Hyderabad");
   const [area, setArea] = useState(user?.area || "");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      if (user.name) setName(user.name);
+      if (user.email) setEmail(user.email);
+      if (user.phone) setPhone(user.phone);
+      if (user.city) setCity(user.city);
+      else if (selectedCity) setCity(selectedCity);
+      if (user.area || user.ward) setArea(user.area || user.ward || "");
+    }
+  }, [user, selectedCity]);
 
   // Password state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -238,7 +249,11 @@ export default function Profile() {
                 <select
                   id="profile-city"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCity(val);
+                    setSelectedCity(val);
+                  }}
                   className="field text-xs"
                 >
                   {cities.map((c) => (

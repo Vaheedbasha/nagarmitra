@@ -128,14 +128,33 @@ export function ComplaintsProvider({ children }: { children: ReactNode }) {
     }
   }, [language]);
 
-  const setSelectedCity = useCallback((city: string) => {
-    setSelectedCityState(city);
-    try {
-      window.localStorage.setItem(CITY_KEY, city);
-    } catch {
-      /* ignore */
+  useEffect(() => {
+    if (user?.city && user.city !== selectedCity) {
+      setSelectedCityState(user.city);
+      try {
+        window.localStorage.setItem(CITY_KEY, user.city);
+      } catch {
+        /* ignore */
+      }
     }
-  }, []);
+  }, [user?.city]);
+
+  const setSelectedCity = useCallback(
+    (city: string) => {
+      setSelectedCityState(city);
+      try {
+        window.localStorage.setItem(CITY_KEY, city);
+      } catch {
+        /* ignore */
+      }
+      if (user && user.city !== city) {
+        api("/api/auth/me", { method: "PATCH", body: { city } })
+          .then(() => refreshUser())
+          .catch(() => {});
+      }
+    },
+    [user, refreshUser]
+  );
 
   const addCustomCity = useCallback((rawName: string) => {
     const trimmed = rawName.trim();

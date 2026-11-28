@@ -14,7 +14,12 @@ import { config } from "../config.js";
 import { db, execute, nowIso, queryOne, uid } from "../db.js";
 import { isCloudConfigured, refreshIfNewer, syncCloudDatabase } from "../cloud-storage.js";
 import { notifyStaff, notifyUser } from "../notifications.js";
-import { sendVerificationEmail } from "../email.js";
+import {
+  createSignedToken,
+  verifySignedToken,
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+} from "../email.js";
 import {
   bad,
   isEmail,
@@ -92,7 +97,7 @@ authRouter.post("/register", async (req, res) => {
     );
   }
 
-  const verifyToken = randomBytes(32).toString("base64url");
+  const verifyToken = createSignedToken(id, email, "verify");
   const expiresAt = new Date(Date.now() + 24 * 3600_000).toISOString();
   try {
     execute(
@@ -270,6 +275,7 @@ authRouter.patch("/me", requireAuth, async (req, res) => {
   const updates: string[] = [];
   const values: (string | number)[] = [];
   const name = text(req.body?.name, 80);
+  const email = req.body?.email ? text(req.body.email, 160).toLowerCase() : "";
   const language = text(req.body?.language, 2);
   const city = text(req.body?.city, 80);
   const area = text(req.body?.area, 120);
@@ -279,6 +285,13 @@ authRouter.patch("/me", requireAuth, async (req, res) => {
     if (name.length < 2) return bad(res, 400, "Please enter your full name.");
     updates.push("name = ?");
     values.push(name);
+  }
+  if (email && email !== req.user!.email) {
+    if (!isEmail(email)) return bad(res, 400, "Please enter a valid email address.");
+    if (queryOne("SELECT 1 FROM users WHERE email = ? AND id <> ?", [email, req.user!.id]))
+      return bad(res, 409, "That email address is already in use by another account.");
+    updates.push("email = ?");
+    values.push(email);
   }
   if (language) {
     if (!LANGS.includes(language)) return bad(res, 400, "Unsupported language.");
@@ -293,7 +306,7 @@ authRouter.patch("/me", requireAuth, async (req, res) => {
     updates.push("area = ?");
     values.push(area);
   }
-  if (phone) {
+  if (phone && phone !== req.user!.phone) {
     if (!isPhone(phone)) return bad(res, 400, "Please enter a valid phone number.");
     if (queryOne("SELECT 1 FROM users WHERE phone = ? AND id <> ?", [phone, req.user!.id]))
       return bad(res, 409, "That phone number is already in use.");
@@ -304,18 +317,20 @@ authRouter.patch("/me", requireAuth, async (req, res) => {
     updates.push("notify_email = ?");
     values.push(req.body.notifyEmail ? 1 : 0);
   }
-  if (!updates.length) return bad(res, 400, "No supported fields supplied.");
 
-  updates.push("updated_at = ?");
-  values.push(nowIso());
-  execute(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, [...values, req.user!.id]);
-  if (isCloudConfigured()) {
-    try {
-      await syncCloudDatabase();
-    } catch (e) {
-      console.warn("[auth] patch me sync error:", e);
+  if (updates.length > 0) {
+    updates.push("updated_at = ?");
+    values.push(nowIso());
+    execute(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, [...values, req.user!.id]);
+    if (isCloudConfigured()) {
+      try {
+        await syncCloudDatabase();
+      } catch (e) {
+        console.warn("[auth] patch me sync error:", e);
+      }
     }
   }
+
   res.json({ user: publicUser(readSessionUser(req.user!.id)) });
 });
 
@@ -350,46 +365,109 @@ authRouter.post("/change-password", requireAuth, async (req, res) => {
  * returned only outside production and shown once. In production, configure an email
  * provider (see README) before relying on this route.
  */
-authRouter.post("/forgot-password", (req, res) => {
+authRouter.post("/forgot-password", async (req, res) => {
   const email = text(req.body?.email, 160).toLowerCase();
   if (!isEmail(email)) return bad(res, 400, "Enter a valid email address.");
-  const row = queryOne<{ id: string }>("SELECT id FROM users WHERE email = ?", [email]);
-  if (!row) {
-    return res.json({ ok: true, message: "If that email exists, a reset link has been issued." });
+
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] forgot-password refresh error:", e);
+    }
   }
-  const token = randomBytes(24).toString("base64url");
+
+  const user = queryOne<{ id: string; name: string; email: string }>(
+    "SELECT id, name, email FROM users WHERE email = ?",
+    [email]
+  );
+
+  if (!user) {
+    return res.json({
+      ok: true,
+      message: "If an account exists with that email, a password reset link has been dispatched.",
+    });
+  }
+
+  const token = createSignedToken(user.id, user.email, "reset", 60 * 60 * 1000);
   execute(
     "INSERT INTO password_resets (token_hash, user_id, expires_at, used) VALUES (?, ?, ?, 0)",
-    [sha256(token), row.id, new Date(Date.now() + 30 * 60_000).toISOString()]
+    [sha256(token), user.id, new Date(Date.now() + 60 * 60_000).toISOString()]
   );
+
+  let emailResult = { sent: false, previewUrl: "" };
+  try {
+    emailResult = await sendPasswordResetEmail({
+      name: user.name,
+      email: user.email,
+      token,
+    });
+  } catch (err) {
+    console.warn("[auth] sendPasswordResetEmail error:", err);
+  }
+
+  if (isCloudConfigured()) {
+    try {
+      await syncCloudDatabase();
+    } catch (e) {
+      console.warn("[auth] forgot-password sync error:", e);
+    }
+  }
+
   res.json({
     ok: true,
-    message: config.isProduction
-      ? "If that email exists, a reset link has been issued."
-      : "Development mode: email is not configured, so the reset token is returned here.",
-    ...(config.isProduction ? {} : { token }),
+    emailSent: emailResult.sent,
+    message: "If an account exists with that email, a password reset link has been dispatched to your inbox.",
   });
 });
 
 authRouter.post("/reset-password", async (req, res) => {
-  const token = text(req.body?.token, 200);
+  const token = text(req.body?.token, 500);
   const password = text(req.body?.password, 200);
   const problem = passwordProblem(password);
   if (problem) return bad(res, 400, problem);
 
-  const row = queryOne<{ user_id: string }>(
-    "SELECT user_id FROM password_resets WHERE token_hash = ? AND used = 0 AND expires_at > ?",
-    [sha256(token), nowIso()]
-  );
-  if (!row) return bad(res, 400, "This reset link is invalid or expired.");
+  if (isCloudConfigured()) {
+    try {
+      await refreshIfNewer();
+    } catch (e) {
+      console.warn("[auth] reset-password refresh error:", e);
+    }
+  }
+
+  let userId: string | undefined = undefined;
+
+  // 1. Check stateless HMAC signed token first
+  const signed = verifySignedToken(token, "reset");
+  if (signed.valid && signed.userId) {
+    userId = signed.userId;
+  } else if (signed.expired) {
+    return bad(res, 400, "This password reset link has expired. Please request a new one.");
+  } else {
+    // 2. Check database token fallback
+    const row = queryOne<{ user_id: string }>(
+      "SELECT user_id FROM password_resets WHERE token_hash = ? AND used = 0 AND expires_at > ?",
+      [sha256(token), nowIso()]
+    );
+    if (row) {
+      userId = row.user_id;
+    }
+  }
+
+  if (!userId) {
+    return bad(res, 400, "This password reset link is invalid or has expired.");
+  }
 
   execute("UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?", [
     hashPassword(password),
     nowIso(),
-    row.user_id,
+    userId,
   ]);
-  execute("UPDATE password_resets SET used = 1 WHERE token_hash = ?", [sha256(token)]);
-  execute("DELETE FROM sessions WHERE user_id = ?", [row.user_id]);
+  try {
+    execute("UPDATE password_resets SET used = 1 WHERE user_id = ? OR token_hash = ?", [userId, sha256(token)]);
+  } catch {}
+  execute("DELETE FROM sessions WHERE user_id = ?", [userId]);
+
   if (isCloudConfigured()) {
     try {
       await syncCloudDatabase();
@@ -397,7 +475,16 @@ authRouter.post("/reset-password", async (req, res) => {
       console.warn("[auth] reset-password sync error:", e);
     }
   }
-  res.json({ ok: true });
+
+  const session = createSession(userId);
+  const user = readSessionUser(userId);
+
+  res.json({
+    ok: true,
+    message: "Your password has been reset successfully.",
+    token: session.token,
+    user: user ? publicUser(user) : undefined,
+  });
 });
 
 authRouter.get("/official-status", requireAuth, (req, res) => {
@@ -405,9 +492,8 @@ authRouter.get("/official-status", requireAuth, (req, res) => {
 });
 
 authRouter.get("/verify-email", async (req, res) => {
-  const token = text(req.query?.token as string, 200);
+  const token = text(req.query?.token as string, 500);
   if (!token) return bad(res, 400, "Verification token is required.");
-  const tokenHash = sha256(token);
 
   if (isCloudConfigured()) {
     try {
@@ -417,33 +503,48 @@ authRouter.get("/verify-email", async (req, res) => {
     }
   }
 
-  const record = queryOne<{ user_id: string; email: string; expires_at: string; used: number }>(
-    "SELECT user_id, email, expires_at, used FROM email_verifications WHERE token_hash = ?",
-    [tokenHash]
-  );
+  // 1. Check stateless HMAC signed token first
+  const signed = verifySignedToken(token, "verify");
+  let targetUserId: string | undefined = undefined;
 
-  if (!record) {
+  if (signed.valid && signed.userId) {
+    targetUserId = signed.userId;
+  } else if (signed.expired) {
+    return bad(res, 400, "This verification link has expired. Please request a new verification email.");
+  } else {
+    // 2. Fallback to database token check for legacy links
+    const tokenHash = sha256(token);
+    const record = queryOne<{ user_id: string; email: string; expires_at: string; used: number }>(
+      "SELECT user_id, email, expires_at, used FROM email_verifications WHERE token_hash = ?",
+      [tokenHash]
+    );
+
+    if (record) {
+      if (record.used) {
+        const user = readSessionUser(record.user_id);
+        const session = createSession(record.user_id);
+        return res.json({
+          ok: true,
+          alreadyVerified: true,
+          message: "Your email has already been verified.",
+          token: session.token,
+          user: user ? publicUser(user) : undefined,
+        });
+      }
+      if (new Date(record.expires_at).getTime() < Date.now()) {
+        return bad(res, 400, "This verification link has expired. Please request a new verification email.");
+      }
+      targetUserId = record.user_id;
+      execute("UPDATE email_verifications SET used = 1 WHERE token_hash = ?", [tokenHash]);
+    }
+  }
+
+  if (!targetUserId) {
     return bad(res, 400, "This verification link is invalid or has already been replaced.");
   }
 
-  if (record.used) {
-    const user = readSessionUser(record.user_id);
-    const session = createSession(record.user_id);
-    return res.json({
-      ok: true,
-      alreadyVerified: true,
-      message: "Your email has already been verified.",
-      token: session.token,
-      user: user ? publicUser(user) : undefined,
-    });
-  }
-
-  if (new Date(record.expires_at).getTime() < Date.now()) {
-    return bad(res, 400, "This verification link has expired. Please request a new verification email.");
-  }
-
-  execute("UPDATE email_verifications SET used = 1 WHERE token_hash = ?", [tokenHash]);
-  execute("UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?", [nowIso(), record.user_id]);
+  // Activate the user
+  execute("UPDATE users SET email_verified = 1, updated_at = ? WHERE id = ?", [nowIso(), targetUserId]);
 
   if (isCloudConfigured()) {
     try {
@@ -453,13 +554,13 @@ authRouter.get("/verify-email", async (req, res) => {
     }
   }
 
-  const user = readSessionUser(record.user_id);
-  const session = createSession(record.user_id);
+  const user = readSessionUser(targetUserId);
+  const session = createSession(targetUserId);
   res.json({
     ok: true,
     message: "Email verified successfully! Your account is now fully active.",
     token: session.token,
-    user: publicUser(user),
+    user: user ? publicUser(user) : undefined,
   });
 });
 
@@ -488,7 +589,7 @@ authRouter.post("/resend-verification", optionalAuth, async (req, res) => {
     return res.json({ ok: true, alreadyVerified: true, message: "This email address is already verified." });
   }
 
-  const verifyToken = randomBytes(32).toString("base64url");
+  const verifyToken = createSignedToken(user.id, user.email, "verify");
   const expiresAt = new Date(Date.now() + 24 * 3600_000).toISOString();
   const at = nowIso();
 
